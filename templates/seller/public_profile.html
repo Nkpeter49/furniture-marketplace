@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}{{ profile['business_name'] }} · Furniture Marketplace{% endblock %}
+{% block heading %}{{ profile['business_name'] }}{% endblock %}
+{% block content %}
+<section class="seller-profile-page">
+  {% if profile['cover_image'] %}
+    <img class="seller-cover" src="{{ url_for('profiles.seller_profile_image', seller_id=profile['user_id'], kind='cover') }}" alt="Cover image for {{ profile['business_name'] }}">
+  {% endif %}
+  <div class="seller-profile-intro">
+    {% if profile['profile_image'] %}
+      <img class="seller-avatar" src="{{ url_for('profiles.seller_profile_image', seller_id=profile['user_id'], kind='profile') }}" alt="{{ profile['business_name'] }} profile">
+    {% else %}
+      <div class="seller-avatar avatar-placeholder" aria-hidden="true">{{ profile['business_name'][:1]|upper }}</div>
+    {% endif %}
+    <div>
+      <p class="eyebrow">Approved furniture seller</p>
+      <h2>{{ profile['business_name'] }}</h2>
+      {% if profile['bio'] %}<p>{{ profile['bio'] }}</p>{% endif %}
+      {% if profile['specialties'] %}<p><strong>Specialties:</strong> {{ profile['specialties'] }}</p>{% endif %}
+      {% if whatsapp_digits %}<a class="action-button" href="https://wa.me/{{ whatsapp_digits }}" target="_blank" rel="noopener noreferrer">Contact on WhatsApp <span>(opens WhatsApp)</span></a>{% endif %}
+      {% if current_user and current_user['id'] != profile['user_id'] %}<p><a href="{{ url_for('support.report_user', user_id=profile['user_id']) }}">Report seller</a></p>{% endif %}
+    </div>
+  </div>
+</section>
+
+<section class="listing-section">
+  <div class="section-heading"><div><p class="eyebrow">From this seller</p><h2>Published furniture</h2></div></div>
+  {% if listings %}
+    <div class="listing-grid">
+      {% for listing in listings %}
+        <article class="listing-card">
+          {% if listing['cover_image_id'] %}<a href="{{ url_for('storefront.listing_detail', listing_id=listing['id']) }}"><img class="listing-photo" src="{{ url_for('profiles.listing_image', image_id=listing['cover_image_id']) }}" alt="Photo of {{ listing['item_name'] }}"></a>{% else %}<div class="listing-photo image-placeholder" aria-hidden="true">Furniture listing</div>{% endif %}
+          <div class="listing-card-body">
+            <p class="eyebrow">{{ listing['category'] }}</p>
+            <h3><a href="{{ url_for('storefront.listing_detail', listing_id=listing['id']) }}">{{ listing['item_name'] }}</a></h3>
+            {% if listing['price'] %}<p class="listing-price">{{ listing['price'] }} {{ listing['currency'] }}</p>{% else %}<p class="listing-price">Ask seller about price</p>{% endif %}
+            <p class="availability-pill">Seller reported: {{ listing['availability'] }}</p>
+            {% if listing['description'] %}<p>{{ listing['description'] }}</p>{% endif %}
+            <a class="action-button" href="{{ url_for('storefront.listing_detail', listing_id=listing['id']) }}">View details and ask</a>
+            {% if current_user %}<p><a href="{{ url_for('support.report_listing', listing_id=listing['id']) }}">Report listing</a></p>{% endif %}
+            <dl class="listing-facts">
+              {% if listing['condition'] %}<div><dt>Condition</dt><dd>{{ listing['condition'] }}</dd></div>{% endif %}
+              {% if listing['material'] %}<div><dt>Material</dt><dd>{{ listing['material'] }}</dd></div>{% endif %}
+              {% if listing['dimensions'] %}<div><dt>Dimensions</dt><dd>{{ listing['dimensions'] }}</dd></div>{% endif %}
+            </dl>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state"><h3>No published furniture yet</h3><p>This seller has not published any available listings.</p></div>
+  {% endif %}
+</section>
+{% endblock %}

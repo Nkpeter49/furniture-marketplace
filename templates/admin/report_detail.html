@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Review Report · {{ app_name }}{% endblock %}
+{% block heading %}Review Report #{{ report['id'] }}{% endblock %}
+{% block content %}
+<section class="form-panel">
+  <p>Reporter: {{ report['reporter_name'] }} · {{ report['reporter_email'] }}</p>
+  <p>Target: {{ report['target_type']|title }} {{ report['target_id'] }}{% if target %} ({{ target['label'] }}){% endif %}</p>
+  <p>Reason: {{ report['reason'].replace('_', ' ')|title }}</p>
+  <h2>Report details</h2><p class="preserve-lines">{{ report['details'] }}</p>
+  <form method="post" class="account-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label for="status">Review outcome</label>
+    <select id="status" name="status">{% for status in statuses %}<option value="{{ status }}" {% if report['status'] == status %}selected{% endif %}>{{ status.replace('_', ' ')|title }}</option>{% endfor %}</select>
+    <label for="content_action">If action is taken</label>
+    <select id="content_action" name="content_action"><option value="none">No restriction action</option>{% if report['target_type'] == 'listing' %}{% if target and target['moderation_status'] == 'hidden' %}<option value="restore_listing">Restore this listing after review</option>{% else %}<option value="hide_listing">Hide this listing from public pages</option>{% endif %}{% endif %}<option value="suspend_seller">Suspend the reported seller</option></select>
+    <label for="admin_note">Review note (visible only to administrators; explain restrictions)</label>
+    <textarea id="admin_note" name="admin_note" rows="4" maxlength="1000">{{ report['admin_note'] }}</textarea>
+    <button type="submit">Save review</button>
+  </form>
+  <p>For copyright/trademark reports, follow the <a href="{{ url_for('support.policy_page', slug='ip-complaints') }}">draft complaint and response procedure</a> and applicable jurisdiction-specific requirements.</p>
+</section>
+{% endblock %}

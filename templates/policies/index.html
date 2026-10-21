@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}Terms and Policies · {{ app_name }}{% endblock %}
+{% block heading %}Terms, Privacy, and Safety{% endblock %}
+{% block content %}
+<section class="form-panel"><p><strong>DRAFT ONLY.</strong> These plain-language documents are starter drafts for the local prototype. They contain placeholders and require review by the actual operator and a qualified professional familiar with the launch jurisdiction before public use. They do not certify legal compliance.</p>
+<div class="help-grid">{% for slug, policy in policies.items() %}<article class="help-card"><h2><a href="{{ url_for('support.policy_page', slug=slug) }}">{{ policy.title }}</a></h2><p>Draft for local prototype; review and complete placeholders before launch.</p></article>{% endfor %}</div></section>
+{% endblock %}

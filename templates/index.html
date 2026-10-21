@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <meta name="description" content="A local furniture marketplace prototype with seller tools and local AI product drafts.">
+  <title>{{ app_name }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</head>
+<body>
+  <main class="page-shell">
+    <header class="page-header">
+      <nav class="site-nav" aria-label="Account navigation">
+        <a href="{{ url_for('index') }}" class="brand-link">Furniture Marketplace</a>
+        <div class="nav-links">
+          <a href="{{ url_for('storefront.browse') }}">Browse furniture</a>
+          {% if current_user %}
+            <a href="{{ url_for('auth.dashboard') }}">Dashboard</a>
+            <a href="{{ url_for('auth.account') }}">My account</a>
+            <a href="{{ url_for('support.create_ticket') }}">Contact Support</a>
+            <form method="post" action="{{ url_for('auth.logout') }}" class="inline-form">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+              <button class="link-button" type="submit">Sign out</button>
+            </form>
+          {% else %}
+            <a href="{{ url_for('auth.login') }}">Sign in</a>
+            <a href="{{ url_for('auth.register') }}">Create account</a>
+          {% endif %}
+          <a href="{{ url_for('support.help_center') }}">Help Center</a>
+          <a href="{{ url_for('support.policy_index') }}">Policies</a>
+        </div>
+      </nav>
+      <p class="eyebrow">Seller tools for the furniture marketplace</p>
+      <h1>{{ app_name }}</h1>
+      <p class="intro">Manage approved seller profiles and furniture listings, and create clear product descriptions using facts you provide.</p>
+      <p id="ai-status" class="status" role="status" aria-live="polite">Checking local AI…</p>
+      <p class="privacy-note">Generation uses Ollama on this computer. Seller text is not sent to a cloud AI service. Review every draft before using it.</p>
+    </header>
+
+    <section class="workspace" aria-labelledby="task-title">
+      <div class="form-panel">
+        <h2 id="task-title">Product description</h2>
+        <p>Share the facts you know. Leave unknown details blank.</p>
+        <form id="product-form" novalidate>
+          <label for="item_name">Item name <span>(required)</span></label>
+          <input id="item_name" name="item_name" autocomplete="off" required maxlength="160">
+
+          <label for="category">Furniture category <span>(required)</span></label>
+          <input id="category" name="category" placeholder="For example, sofa, bed, table, or cabinet" autocomplete="off" required maxlength="120">
+
+          <label for="material">Material</label>
+          <input id="material" name="material" autocomplete="off" maxlength="160">
+
+          <label for="condition">Condition</label>
+          <input id="condition" name="condition" placeholder="New, used, or other seller-provided detail" autocomplete="off" maxlength="120">
+
+          <label for="dimensions">Dimensions</label>
+          <input id="dimensions" name="dimensions" placeholder="Include units if known" autocomplete="off" maxlength="120">
+
+          <label for="price">Price</label>
+          <input id="price" name="price" autocomplete="off" maxlength="80">
+
+          <label for="colour">Colour</label>
+          <input id="colour" name="colour" autocomplete="off" maxlength="100">
+
+          <label for="additional_details">Additional details</label>
+          <textarea id="additional_details" name="additional_details" rows="3" maxlength="1000"></textarea>
+
+          <p id="form-message" class="form-message" role="alert" aria-live="assertive"></p>
+          <button type="submit" id="generate-button">Generate description</button>
+        </form>
+      </div>
+
+      <section class="result-panel" aria-labelledby="result-title">
+        <div class="result-heading">
+          <div>
+            <p class="eyebrow">Your preview</p>
+            <h2 id="result-title">Product description</h2>
+          </div>
+          <button type="button" id="copy-button" class="secondary-button" disabled>Copy</button>
+        </div>
+        <p id="result-source" class="result-source" role="status" aria-live="polite"></p>
+        <p id="result" class="result-text" aria-live="polite">Generate a draft to see local AI output or a clearly labeled facts-only fallback.</p>
+        <p id="copy-message" class="copy-message" role="status" aria-live="polite"></p>
+      </section>
+    </section>
+    <footer class="site-footer">
+      <p>Local marketplace prototype. The seller reviews every AI draft; no draft is sent or published automatically.</p>
+      <nav aria-label="Help and policy links"><a href="{{ url_for('support.help_center') }}">Help Center</a> <a href="{{ url_for('support.create_ticket') }}">Contact Support</a> <a href="{{ url_for('support.policy_index') }}">Terms and policies</a> <a href="{{ url_for('support.policy_page', slug='privacy') }}">Privacy</a> <a href="{{ url_for('support.policy_page', slug='buyer-safety') }}">Buyer safety</a> <a href="{{ url_for('support.policy_page', slug='ai-disclosure') }}">AI disclosure</a></nav>
+      <p>© {{ current_year }} {{ app_name }}. Original materials are protected to the extent permitted by law.</p>
+      {% if app_owner %}<p>Operator: {{ app_owner }}</p>{% else %}<p class="draft-notice">Operator identity is not configured in this local draft.</p>{% endif %}
+      <p class="draft-notice">No 24/7 human support, legal certification, or public-launch approval is represented.</p>
+    </footer>
+  </main>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Contact Support · {{ app_name }}{% endblock %}
+{% block heading %}Contact Support{% endblock %}
+{% block content %}
+<section class="form-panel narrow-panel">
+  <p>Describe the issue without passwords, payment details, or unnecessary personal information. Requests are reviewed when an administrator is available; this prototype has no response-time guarantee.</p>
+  <form method="post" class="account-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label for="category">Category</label><select id="category" name="category" required>{% for key, label in categories.items() %}<option value="{{ key }}" {% if values.get('category') == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+    <label for="subject">Subject</label><input id="subject" name="subject" maxlength="120" required value="{{ values.get('subject', '') }}">
+    <label for="description">Description</label><textarea id="description" name="description" rows="6" minlength="10" maxlength="4000" required>{{ values.get('description', '') }}</textarea>
+    <label for="listing_reference">Optional listing reference</label><input id="listing_reference" name="listing_reference" maxlength="80" value="{{ values.get('listing_reference', '') }}" aria-describedby="listing-help"><small id="listing-help">Use the listing ID or a short reference. Do not include sensitive information.</small>
+    <button type="submit">Submit support request</button>
+  </form>
+</section>
+{% endblock %}

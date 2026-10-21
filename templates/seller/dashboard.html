@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Seller dashboard · Furniture Marketplace{% endblock %}
+{% block heading %}Welcome, {{ user['display_name'] }}{% endblock %}
+{% block content %}
+<section class="form-panel">
+  <h2>Seller dashboard</h2>
+  {% if user['account_status'] == 'suspended' %}
+    <p class="status-warning">This seller account is suspended. Contact the administrator for help.</p>
+  {% elif user['seller_approval'] == 'pending' %}
+    <p class="status-warning">Your account is waiting for administrator approval. You cannot publish listings yet.</p>
+  {% else %}
+    <p class="status-success">Your seller account is approved. Published listings appear in marketplace search and on your public seller page.</p>
+    <section class="stat-grid" aria-label="Your listing and inquiry counts"><article class="stat-card"><strong>{{ stats.listings }}</strong><span>Active listings</span></article><article class="stat-card"><strong>{{ stats.published }}</strong><span>Published listings</span></article><article class="stat-card"><strong>{{ stats.inquiries }}</strong><span>Buyer inquiries</span></article></section>
+    <div class="action-links">
+      <a class="action-button" href="{{ url_for('profiles.edit_seller_profile') }}">Edit business profile</a>
+      <a class="action-button" href="{{ url_for('profiles.seller_listings') }}">Manage listings</a>
+      <a class="action-button secondary-action" href="{{ url_for('storefront.conversations') }}">Buyer inquiries</a>
+      <a class="action-button secondary-action" href="{{ url_for('storefront.browse') }}">Preview marketplace</a>
+      <a href="{{ url_for('profiles.public_seller_profile', seller_id=user['id']) }}">View public seller page</a>
+    </div>
+  {% endif %}
+  <p><a href="{{ url_for('auth.account') }}">Manage your account</a> · <a href="{{ url_for('support.my_tickets') }}">Support requests</a> · <a href="{{ url_for('support.privacy_requests') }}">Privacy and data requests</a> · <a href="{{ url_for('support.my_reports') }}">Your reports</a></p>
+</section>
+{% endblock %}

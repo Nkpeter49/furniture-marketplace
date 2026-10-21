@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Create account · Furniture Marketplace{% endblock %}
+{% block heading %}Create an account{% endblock %}
+{% block content %}
+<section class="form-panel narrow-panel">
+  <p>Choose buyer or seller. Seller accounts need administrator approval before publishing listings.</p>
+  <form method="post" action="{{ url_for('auth.register') }}" class="account-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label for="display_name">Your name or business name</label>
+    <input id="display_name" name="display_name" maxlength="80" required value="{{ values.get('display_name', '') }}">
+    <label for="email">Email</label>
+    <input id="email" name="email" type="email" maxlength="254" autocomplete="email" required value="{{ values.get('email', '') }}">
+    <label for="role">Account type</label>
+    <select id="role" name="role" required>
+      <option value="">Choose one</option>
+      <option value="buyer" {% if values.get('role') == 'buyer' %}selected{% endif %}>Buyer</option>
+      <option value="seller" {% if values.get('role') == 'seller' %}selected{% endif %}>Seller</option>
+    </select>
+    <label for="password">Password (at least 12 characters)</label>
+    <input id="password" name="password" type="password" minlength="12" autocomplete="new-password" required>
+    <button type="submit">Create account</button>
+  </form>
+  <p class="form-footnote">Already registered? <a href="{{ url_for('auth.login') }}">Sign in</a>.</p>
+</section>
+{% endblock %}

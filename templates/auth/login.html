@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Sign in · Furniture Marketplace{% endblock %}
+{% block heading %}Sign in{% endblock %}
+{% block content %}
+<section class="form-panel narrow-panel">
+  <form method="post" action="{{ url_for('auth.login') }}" class="account-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label for="email">Email</label>
+    <input id="email" name="email" type="email" maxlength="254" autocomplete="email" required value="{{ email }}">
+    <label for="password">Password</label>
+    <input id="password" name="password" type="password" autocomplete="current-password" required>
+    <button type="submit">Sign in</button>
+  </form>
+  <p class="form-footnote">New here? <a href="{{ url_for('auth.register') }}">Create a buyer or seller account</a>.</p>
+</section>
+{% endblock %}

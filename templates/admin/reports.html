@@ -1,0 +1,4 @@
+{% extends "base.html" %}
+{% block title %}Report Queue · {{ app_name }}{% endblock %}
+{% block heading %}Administrator Report Queue{% endblock %}
+{% block content %}<section class="form-panel"><p>Report details are private and should be accessed only to review and document an appropriate action.</p>{% if reports %}<ul class="record-list">{% for report in reports %}<li><a href="{{ url_for('support.admin_report', report_id=report['id']) }}">Report #{{ report['id'] }} · {{ report['target_type']|title }} {{ report['target_id'] }}</a> · {{ report['reason'].replace('_', ' ')|title }} · <span class="status-pill">{{ report['status'].replace('_', ' ')|title }}</span> · Reporter {{ report['reporter'] }}</li>{% endfor %}</ul>{% else %}<div class="empty-state"><h2>No reports</h2><p>New reports will appear here.</p></div>{% endif %}</section>{% endblock %}

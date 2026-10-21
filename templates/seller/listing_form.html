@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}{% if listing %}Edit listing{% else %}Add furniture{% endif %} · Furniture Marketplace{% endblock %}
+{% block heading %}{% if listing %}Edit furniture listing{% else %}Add furniture{% endif %}{% endblock %}
+{% block content %}
+<section class="form-panel narrow-panel">
+  {% if listing and listing['moderation_status'] == 'hidden' %}<p class="status-warning" role="status">This listing is hidden during administrator review. You may edit its details, but you cannot republish it until review is complete.</p>{% endif %}
+  <p>Enter only details you can confirm. A listing is visible on your public seller page when its status is Published and it is not under a moderation hold.</p>
+  <form method="post" class="account-form" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label for="item_name">Item name</label><input id="item_name" name="item_name" maxlength="120" required value="{{ values['item_name'] }}">
+    <label for="category">Furniture category</label><input id="category" name="category" maxlength="80" required value="{{ values['category'] }}" placeholder="For example, sofa or dining table">
+    <label for="material">Material</label><input id="material" name="material" maxlength="120" value="{{ values['material'] }}">
+    <label for="condition">Condition</label><input id="condition" name="condition" maxlength="80" value="{{ values['condition'] }}">
+    <label for="dimensions">Dimensions</label><input id="dimensions" name="dimensions" maxlength="120" value="{{ values['dimensions'] }}">
+    <div class="two-column-fields"><div><label for="price">Price <span>(optional)</span></label><input id="price" name="price" inputmode="decimal" value="{{ values['price'] }}"></div><div><label for="currency">Currency <span>(optional)</span></label><input id="currency" name="currency" maxlength="3" value="{{ values['currency'] }}" placeholder="KES"></div></div>
+    <label for="colour">Colour</label><input id="colour" name="colour" maxlength="80" value="{{ values['colour'] }}">
+    <label for="description">Description</label><textarea id="description" name="description" rows="5" maxlength="2400">{{ values['description'] }}</textarea><button class="secondary-button" type="button" data-product-draft data-message-target="#listing-ai-message">Draft description with local AI</button><p id="listing-ai-message" role="status" aria-live="polite">AI text remains a draft. Check it against your facts before saving.</p>
+    <label for="additional_details">Additional details</label><textarea id="additional_details" name="additional_details" rows="3" maxlength="1200">{{ values['additional_details'] }}</textarea>
+    <label for="availability">Seller-reported availability</label><select id="availability" name="availability"><option value="available" {% if values['availability'] == 'available' %}selected{% endif %}>Available</option><option value="unavailable" {% if values['availability'] == 'unavailable' %}selected{% endif %}>Unavailable</option></select>
+    <label for="quantity">Seller-reported quantity <span>(optional; leave blank if unknown)</span></label><input id="quantity" name="quantity" type="number" min="0" max="999999999" step="1" value="{{ values['quantity'] if values['quantity'] is not none else '' }}">
+    <label for="status">Listing status</label><select id="status" name="status"><option value="draft" {% if values['status'] == 'draft' %}selected{% endif %}>Save as draft</option><option value="published" {% if values['status'] == 'published' %}selected{% endif %}>Publish on my seller page</option></select>
+    <label for="photos">Photos <span>(JPEG, PNG, or WebP; each up to 5 MB; maximum five per listing)</span></label><input id="photos" name="photos" type="file" accept="image/jpeg,image/png,image/webp" multiple>
+    {% if images %}<h2 class="form-section-title">Current photos</h2><div class="photo-management">{% for image in images %}<div><img src="{{ url_for('profiles.seller_listing_photo', listing_id=listing['id'], image_id=image['id']) }}" alt="Listing photo {{ loop.index }}"><form method="post" action="{{ url_for('profiles.remove_listing_photo', listing_id=listing['id'], image_id=image['id']) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><label class="check-row"><input type="checkbox" name="confirm_remove" value="yes" required> Confirm photo removal</label><button class="danger-button" type="submit">Remove photo</button></form></div>{% endfor %}</div>{% endif %}
+    <button type="submit">Save listing</button>
+  </form>
+</section>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='marketplace.js') }}" defer></script>{% endblock %}

@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}My Reports · {{ app_name }}{% endblock %}
+{% block heading %}My Reports{% endblock %}
+{% block content %}
+<section class="form-panel"><p>Only reports you submitted appear here. Report details are shared with authorized administrators for review.</p>
+{% if reports %}<ul class="record-list">{% for report in reports %}<li>Report #{{ report['id'] }} · {{ report['target_type']|title }} · {{ report['reason'].replace('_', ' ')|title }} · <span class="status-pill">{{ report['status'].replace('_', ' ')|title }}</span></li>{% endfor %}</ul>{% else %}<div class="empty-state"><h2>No reports submitted</h2><p>Use a Report action on a seller profile or published listing if you need to flag a concern.</p></div>{% endif %}</section>
+{% endblock %}

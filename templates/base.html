@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <title>{% block title %}{{ app_name }}{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+</head>
+<body>
+  <main class="page-shell">
+    <header class="page-header">
+      <nav class="site-nav" aria-label="Main navigation">
+        <a href="{{ url_for('storefront.browse') }}" class="brand-link">{{ app_name }}</a>
+        <div class="nav-links">
+          <a href="{{ url_for('storefront.browse') }}">Browse furniture</a>
+          <a href="{{ url_for('product_description_tool') }}">AI listing description tool</a>
+          {% if current_user %}
+            <a href="{{ url_for('auth.dashboard') }}">Dashboard</a>
+            <a href="{{ url_for('auth.account') }}">My account</a>
+            <a href="{{ url_for('support.privacy_requests') }}">Privacy &amp; data requests</a>
+            {% if current_user['role'] == 'buyer' %}
+              <a href="{{ url_for('storefront.favorites') }}">Saved furniture</a>
+              <a href="{{ url_for('storefront.conversations') }}">My conversations</a>
+            {% endif %}
+            {% if current_user['role'] == 'seller' and current_user['account_status'] == 'active' and current_user['seller_approval'] == 'approved' %}
+              <a href="{{ url_for('profiles.seller_listings') }}">My listings</a>
+              <a href="{{ url_for('storefront.conversations') }}">Buyer inquiries</a>
+            {% endif %}
+            {% if current_user['role'] == 'admin' %}
+              <a href="{{ url_for('admin.dashboard') }}">Admin overview</a>
+              <a href="{{ url_for('admin.users') }}">Admin users</a>
+              <a href="{{ url_for('support.admin_tickets') }}">Support queue</a>
+              <a href="{{ url_for('support.admin_reports') }}">Reports</a>
+              <a href="{{ url_for('support.admin_privacy_requests') }}">Privacy requests</a>
+            {% endif %}
+            <form method="post" action="{{ url_for('auth.logout') }}" class="inline-form">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+              <button class="link-button" type="submit">Sign out</button>
+            </form>
+          {% else %}
+            <a href="{{ url_for('auth.login') }}">Sign in</a>
+            <a href="{{ url_for('auth.register') }}">Create account</a>
+          {% endif %}
+          <a href="{{ url_for('support.help_center') }}">Help Center</a>
+          <a href="{{ url_for('support.policy_index') }}">Policies</a>
+          {% if current_user %}<a href="{{ url_for('support.create_ticket') }}">Contact Support</a>{% endif %}
+        </div>
+      </nav>
+      <h1>{% block heading %}Furniture Marketplace{% endblock %}</h1>
+      {% with notices = get_flashed_messages(with_categories=true) %}
+        {% if notices %}
+          <div class="flash-list" role="status" aria-live="polite">
+            {% for category, notice in notices %}
+              <p class="flash {{ category }}">{{ notice }}</p>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+    </header>
+    {% block content %}{% endblock %}
+    <footer class="site-footer">
+      <nav aria-label="Support, safety, and policies">
+        <a href="{{ url_for('support.help_center') }}">Help Center</a>
+        <a href="{{ url_for('support.create_ticket') }}">Contact Support</a>
+        <a href="{{ url_for('support.my_tickets') }}">My support requests</a>
+        <a href="{{ url_for('support.my_reports') }}">My reports</a>
+        <a href="{{ url_for('support.privacy_requests') }}">Privacy &amp; data requests</a>
+        <a href="{{ url_for('support.policy_index') }}">Terms and policies</a>
+        <a href="{{ url_for('support.policy_page', slug='buyer-safety') }}">Buyer safety</a>
+        <a href="{{ url_for('support.policy_page', slug='ai-disclosure') }}">AI disclosure</a>
+      </nav>
+      <p>© {{ current_year }} {{ app_name }}. Original materials are protected to the extent permitted by law.</p>
+      {% if app_owner %}<p>Operator: {{ app_owner }}</p>{% else %}<p class="draft-notice">Operator identity is not configured in this local draft.</p>{% endif %}
+      <p class="draft-notice">Local prototype. No 24/7 human support or public-launch legal review is represented.</p>
+    </footer>
+  </main>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

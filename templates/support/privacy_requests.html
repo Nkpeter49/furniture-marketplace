@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Privacy &amp; Data Requests · {{ app_name }}{% endblock %}
+{% block heading %}Privacy &amp; Data Requests{% endblock %}
+{% block content %}
+<section class="form-panel">
+  <p>Request access, correction, an export, or account closure. This creates a review request; it does not automatically delete or export data. Some records may need limited retention for safety, disputes, security, backups, or legal obligations. Retention periods and the applicable jurisdiction still need to be configured.</p>
+  <p>Read the <a href="{{ url_for('support.policy_page', slug='privacy') }}">draft Privacy Policy</a> and <a href="{{ url_for('support.policy_page', slug='account-data') }}">Account Closure and Data Requests</a>.</p>
+  <form method="post" class="account-form"><input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label for="request_type">Request type</label><select id="request_type" name="request_type" required>{% for key, label in request_types.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}</select>
+    <label for="details">What should be reviewed?</label><textarea id="details" name="details" rows="5" minlength="10" maxlength="2000" required></textarea>
+    <button type="submit">Submit privacy request</button>
+  </form>
+  <h2>Your requests</h2>
+  {% if requests %}<ul class="record-list">{% for item in requests %}<li><strong>{{ item['request_type']|title }}</strong> · <span class="status-pill">{{ item['status'].replace('_', ' ')|title }}</span><p>{{ item['details'] }}</p>{% if item['admin_note'] %}<p><strong>Review note:</strong> {{ item['admin_note'] }}</p>{% endif %}</li>{% endfor %}</ul>{% else %}<p>No privacy requests submitted.</p>{% endif %}
+</section>
+{% endblock %}

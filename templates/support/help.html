@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Help Center · {{ app_name }}{% endblock %}
+{% block heading %}Help Center{% endblock %}
+{% block content %}
+<section class="form-panel">
+  <p>Search practical guidance for using this local marketplace prototype.</p>
+  <form method="get" action="{{ url_for('support.help_center') }}" role="search" class="account-form">
+    <label for="q">Search help articles</label><input id="q" name="q" value="{{ query }}" maxlength="100">
+    <button type="submit">Search</button>
+  </form>
+  {% if articles %}<div class="help-grid">{% for article in articles %}<article class="help-card"><p class="eyebrow">{{ article.category }}</p><h2>{{ article.title }}</h2><p>{{ article.text }}</p></article>{% endfor %}</div>
+  {% else %}<div class="empty-state"><h2>No matching help article</h2><p>Try a shorter search, or contact support if you are signed in.</p></div>{% endif %}
+  <p><a class="action-button" href="{{ url_for('support.create_ticket') }}">Contact Support</a></p>
+  <p>Help articles are automated guidance. No 24/7 human support is arranged for this prototype.</p>
+</section>
+{% endblock %}

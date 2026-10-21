@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Support Request · {{ app_name }}{% endblock %}
+{% block heading %}Support Request #{{ ticket['id'] }}{% endblock %}
+{% block content %}
+<section class="form-panel">
+  <p><strong>Status:</strong> {{ ticket['status'].replace('_', ' ')|title }} · <strong>Category:</strong> {{ ticket['category'].replace('_', ' ')|title }}</p>
+  <h2>{{ ticket['subject'] }}</h2><p class="preserve-lines">{{ ticket['description'] }}</p>
+  {% if ticket['listing_reference'] %}<p>Listing reference: {{ ticket['listing_reference'] }}</p>{% endif %}
+  <h2>Responses</h2>
+  {% if replies %}<ol class="record-list">{% for reply in replies %}<li><strong>{{ reply['role']|title }}</strong> · {{ reply['created_at'] }}<p class="preserve-lines">{{ reply['body'] }}</p></li>{% endfor %}</ol>{% else %}<p>No response has been added yet.</p>{% endif %}
+  <form method="post" class="account-form"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><label for="body">Add information or reply</label><textarea id="body" name="body" rows="5" maxlength="4000" required></textarea><button type="submit">Send response</button></form>
+</section>
+{% endblock %}

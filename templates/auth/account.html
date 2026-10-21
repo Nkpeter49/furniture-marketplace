@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}My account · Furniture Marketplace{% endblock %}
+{% block heading %}My account{% endblock %}
+{% block content %}
+<section class="form-panel narrow-panel">
+  <p>Account type: <strong>{{ user['role']|title }}</strong>
+  {% if user['role'] == 'seller' %}· Approval: <strong>{{ user['seller_approval']|title }}</strong>{% endif %}
+  · Status: <strong>{{ user['account_status']|title }}</strong></p>
+  <form method="post" action="{{ url_for('auth.account') }}" class="account-form" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label for="display_name">Your name or business name</label>
+    <input id="display_name" name="display_name" maxlength="80" required value="{{ user['display_name'] }}">
+    <label for="email">Email</label>
+    <input id="email" name="email" type="email" maxlength="254" required value="{{ user['email'] }}">
+    {% if user['role'] == 'buyer' %}
+      <label for="bio">Short bio <span>(private in this version, up to 500 characters)</span></label>
+      <textarea id="bio" name="bio" rows="4" maxlength="500">{{ user['bio'] }}</textarea>
+      {% if user['profile_image'] %}
+        <img class="account-photo" src="{{ url_for('profiles.buyer_profile_image') }}" alt="Your private profile photo">
+        <label class="check-row"><input type="checkbox" name="remove_profile_photo"> Remove profile photo</label>
+      {% endif %}
+      <label for="profile_photo">Profile photo <span>(JPEG, PNG, or WebP; maximum 5 MB)</span></label>
+      <input id="profile_photo" name="profile_photo" type="file" accept="image/jpeg,image/png,image/webp">
+    {% endif %}
+    <button type="submit">Save account details</button>
+  </form>
+  <p class="form-footnote"><a href="{{ url_for('auth.change_password') }}">Change password</a></p>
+  {% if user['role'] == 'seller' and user['seller_approval'] == 'approved' and user['account_status'] == 'active' %}
+    <p class="form-footnote"><a href="{{ url_for('profiles.edit_seller_profile') }}">Manage public business profile</a></p>
+  {% endif %}
+</section>
+{% endblock %}

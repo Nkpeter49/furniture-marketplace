@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Business profile · Furniture Marketplace{% endblock %}
+{% block heading %}Business profile{% endblock %}
+{% block content %}
+<section class="form-panel narrow-panel">
+  <p>This information appears on your public seller page. Your account email and private messages are not shown.</p>
+  <form method="post" class="account-form" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label for="business_name">Public business name</label>
+    <input id="business_name" name="business_name" maxlength="100" required value="{{ request.form.get('business_name', profile['business_name']) }}">
+    <label for="bio">Business biography <span>(up to 1,800 characters)</span></label>
+    <textarea id="bio" name="bio" rows="5" maxlength="1800">{{ request.form.get('bio', profile['bio']) }}</textarea>
+    <label for="specialties">Furniture specialties <span>(up to 500 characters)</span></label>
+    <textarea id="specialties" name="specialties" rows="3" maxlength="500">{{ request.form.get('specialties', profile['specialties']) }}</textarea>
+
+    {% if profile['profile_image'] %}
+      <img class="profile-preview" src="{{ url_for('profiles.seller_profile_image', seller_id=user['id'], kind='profile') }}" alt="Current business profile photo">
+      <label class="check-row"><input type="checkbox" name="remove_business_photo"> Remove business profile photo</label>
+    {% endif %}
+    <label for="business_photo">Business profile photo <span>(JPEG, PNG, or WebP; maximum 5 MB)</span></label>
+    <input id="business_photo" name="business_photo" type="file" accept="image/jpeg,image/png,image/webp">
+
+    {% if profile['cover_image'] %}
+      <img class="cover-preview" src="{{ url_for('profiles.seller_profile_image', seller_id=user['id'], kind='cover') }}" alt="Current business cover image">
+      <label class="check-row"><input type="checkbox" name="remove_cover_photo"> Remove cover image</label>
+    {% endif %}
+    <label for="cover_photo">Cover image <span>(JPEG, PNG, or WebP; maximum 5 MB)</span></label>
+    <input id="cover_photo" name="cover_photo" type="file" accept="image/jpeg,image/png,image/webp">
+
+    <h2 class="form-section-title">Optional contact</h2>
+    <p class="privacy-callout">Your phone number stays private unless you select the publishing option below.</p>
+    <label for="contact_number">WhatsApp or contact number <span>(include country code)</span></label>
+    <input id="contact_number" name="contact_number" type="tel" maxlength="25" value="{{ request.form.get('contact_number', profile['contact_number']) }}" autocomplete="tel">
+    <label class="check-row"><input type="checkbox" name="publish_contact" {% if request.form.get('publish_contact') == 'on' or (not request.method == 'POST' and profile['publish_contact']) %}checked{% endif %}> Show this number on my public profile and offer an external WhatsApp link</label>
+    <button type="submit">Save business profile</button>
+  </form>
+  <p class="form-footnote"><a href="{{ url_for('profiles.public_seller_profile', seller_id=user['id']) }}">Preview public seller page</a></p>
+</section>
+{% endblock %}

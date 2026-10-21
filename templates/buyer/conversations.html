@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}{% if role == 'seller' %}Buyer inquiries{% else %}My conversations{% endif %} · {{ app_name }}{% endblock %}
+{% block heading %}{% if role == 'seller' %}Buyer inquiries{% else %}My conversations{% endif %}{% endblock %}
+{% block content %}
+<section class="form-panel"><p class="privacy-callout">Conversations are private to the buyer and seller. Marketplace administrators do not have a general message inbox.</p>
+{% if conversations %}<div class="conversation-list">{% for thread in conversations %}<a class="conversation-card" href="{{ url_for('storefront.conversation_detail', conversation_id=thread.id) }}"><span class="eyebrow">{{ thread.item_name }} · {{ thread.other_party }}</span><strong>{{ thread.last_message|truncate(180) }}</strong><small>Updated {{ thread.updated_at }}</small></a>{% endfor %}</div>{% else %}<div class="empty-state"><h2>{% if role == 'seller' %}No buyer inquiries yet{% else %}No conversations yet{% endif %}</h2><p>{% if role == 'seller' %}Buyer questions about your published listings will appear here.{% else %}Ask a seller about a listing to start a private conversation.{% endif %}</p><a href="{{ url_for('storefront.browse') }}">Browse furniture</a></div>{% endif %}</section>
+{% endblock %}

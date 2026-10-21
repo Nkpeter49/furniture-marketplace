@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Admin accounts · Furniture Marketplace{% endblock %}
+{% block heading %}Administrator: accounts{% endblock %}
+{% block content %}
+<section class="form-panel">
+  <p>Review buyer and seller account status. Passwords and private conversations are not shown here.</p>
+  {% if users %}
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Approval</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>
+        {% for user in users %}
+          <tr>
+            <td>{{ user['display_name'] }}</td><td>{{ user['email'] }}</td><td>{{ user['role']|title }}</td>
+            <td>{{ user['seller_approval']|title if user['seller_approval'] else '—' }}</td>
+            <td>{{ user['account_status']|title }}</td>
+            <td class="action-cell">
+              {% if user['role'] == 'seller' and user['seller_approval'] == 'pending' and user['account_status'] == 'active' %}
+                <form method="post" action="{{ url_for('admin.approve_seller', user_id=user['id']) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                  <button type="submit">Approve seller</button>
+                </form>
+              {% endif %}
+              <form method="post" action="{{ url_for('admin.change_user_status', user_id=user['id']) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                {% if user['account_status'] == 'active' %}
+                  <input type="hidden" name="account_status" value="suspended"><label class="check-row"><input type="checkbox" name="confirm_suspend" value="yes" required> Confirm suspension</label><button class="secondary-button" type="submit">Suspend</button>
+                {% else %}
+                  <input type="hidden" name="account_status" value="active"><button class="secondary-button" type="submit">Reactivate</button>
+                {% endif %}
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p>No buyer or seller accounts have registered yet.</p>
+  {% endif %}
+</section>
+{% endblock %}

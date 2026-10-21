@@ -1,0 +1,5 @@
+{% extends "base.html" %}
+{% block title %}Support Queue · {{ app_name }}{% endblock %}
+{% block heading %}Administrator Support Queue{% endblock %}
+{% block content %}<section class="form-panel"><p>Support content is private. Use it only to handle the request; do not copy sensitive details into logs or unrelated records.</p>
+{% if tickets %}<ul class="record-list">{% for ticket in tickets %}<li><a href="{{ url_for('support.admin_ticket', ticket_id=ticket['id']) }}">#{{ ticket['id'] }} · {{ ticket['subject'] }}</a> · {{ ticket['requester'] }} · <span class="status-pill">{{ ticket['status'].replace('_', ' ')|title }}</span></li>{% endfor %}</ul>{% else %}<div class="empty-state"><h2>Queue is clear</h2><p>No support requests are waiting.</p></div>{% endif %}</section>{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Report {{ target_type }} · {{ app_name }}{% endblock %}
+{% block heading %}Report {{ target_type|title }}{% endblock %}
+{% block content %}
+<section class="form-panel narrow-panel">
+  <p>You are reporting: <strong>{{ target_label }}</strong>. Reports are private to you and authorized administrators. Include facts that help review the concern; do not include passwords or unrelated personal information.</p>
+  <form method="post" class="account-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label for="reason">Reason</label><select id="reason" name="reason" required>{% for key, label in reasons.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}</select>
+    <label for="details">Details{% if request.args.get('kind') == 'copyright' %} and supporting information{% endif %}</label>
+    <textarea id="details" name="details" rows="6" minlength="10" maxlength="4000" required aria-describedby="report-help"></textarea>
+    <small id="report-help">For rights complaints, identify the work or mark, the affected content, and your relationship to the rights holder. Review the <a href="{{ url_for('support.policy_page', slug='ip-complaints') }}">IP complaint process</a>. Counter-notices may require jurisdiction-specific handling.</small>
+    <button type="submit">Submit report</button>
+  </form>
+</section>
+{% endblock %}

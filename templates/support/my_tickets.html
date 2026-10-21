@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}My Support Requests · {{ app_name }}{% endblock %}
+{% block heading %}My Support Requests{% endblock %}
+{% block content %}
+<section class="form-panel">
+  <p>Only your requests are shown here.</p>
+  {% if tickets %}<ul class="record-list">{% for ticket in tickets %}<li><a href="{{ url_for('support.ticket_detail', ticket_id=ticket['id']) }}">{{ ticket['subject'] }}</a> <span class="status-pill">{{ ticket['status'].replace('_', ' ')|title }}</span><small> Updated {{ ticket['updated_at'] }}</small></li>{% endfor %}</ul>
+  {% else %}<div class="empty-state"><h2>No support requests yet</h2><p><a href="{{ url_for('support.create_ticket') }}">Contact Support</a> if you need help.</p></div>{% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Browse furniture · {{ app_name }}{% endblock %}
+{% block heading %}Find furniture{% endblock %}
+{% block content %}
+<section class="form-panel">
+  <p class="intro">Browse seller-published furniture. Availability is reported by each seller and may change.</p>
+  <form method="get" action="{{ url_for('storefront.browse') }}" class="filter-form">
+    <label for="q">Search furniture and sellers</label><input id="q" name="q" value="{{ filters.q }}" maxlength="100" placeholder="Try a chair, wood, or a seller name">
+    <div class="filter-grid">
+      <div><label for="category">Category</label><select id="category" name="category"><option value="">All categories</option>{% for value in categories %}<option value="{{ value }}" {% if filters.category == value %}selected{% endif %}>{{ value }}</option>{% endfor %}</select></div>
+      <div><label for="condition">Condition</label><select id="condition" name="condition"><option value="">Any condition</option>{% for value in conditions %}<option value="{{ value }}" {% if filters.condition == value %}selected{% endif %}>{{ value }}</option>{% endfor %}</select></div>
+      <div><label for="availability">Seller-reported availability</label><select id="availability" name="availability"><option value="">Any</option><option value="available" {% if filters.availability == 'available' %}selected{% endif %}>Reported available</option><option value="unavailable" {% if filters.availability == 'unavailable' %}selected{% endif %}>Reported unavailable</option></select></div>
+      <div><label for="min_price">Minimum price</label><input id="min_price" name="min_price" inputmode="decimal" value="{{ filters.min_price }}"></div>
+      <div><label for="max_price">Maximum price</label><input id="max_price" name="max_price" inputmode="decimal" value="{{ filters.max_price }}"></div>
+    </div>
+    <div class="action-links"><button type="submit">Search and filter</button><a class="action-button secondary-action" href="{{ url_for('storefront.browse') }}">Clear filters</a></div>
+  </form>
+</section>
+<section class="listing-section" aria-labelledby="results-heading">
+  <div class="section-heading"><div><p class="eyebrow">{{ total }} listing{% if total != 1 %}s{% endif %}</p><h2 id="results-heading">Furniture listings</h2></div>{% if current_user and current_user['role'] == 'buyer' %}<a href="{{ url_for('storefront.favorites') }}">View saved furniture</a>{% endif %}</div>
+  {% if listings %}
+    <div class="listing-grid">
+    {% for listing in listings %}
+      <article class="listing-card">
+        {% if listing.cover_image_id %}<a href="{{ url_for('storefront.listing_detail', listing_id=listing['id']) }}"><img class="listing-photo" src="{{ url_for('profiles.listing_image', image_id=listing.cover_image_id) }}" alt="Photo of {{ listing.item_name }}"></a>{% else %}<div class="listing-photo image-placeholder" aria-hidden="true">Furniture</div>{% endif %}
+        <div class="listing-card-body"><p class="eyebrow">{{ listing.category }} · {{ listing.condition or 'Condition not provided' }}</p><h3><a href="{{ url_for('storefront.listing_detail', listing_id=listing['id']) }}">{{ listing.item_name }}</a></h3>
+          <p class="listing-price">{% if listing.price %}{{ listing.price }} {{ listing.currency }}{% else %}Ask seller about price{% endif %}</p>
+          <p><span class="availability-pill">Seller reports: {{ listing.availability }}{% if listing.quantity is not none %} · quantity {{ listing.quantity }}{% endif %}</span></p><p>By <a href="{{ url_for('profiles.public_seller_profile', seller_id=listing.seller_id) }}">{{ listing.business_name }}</a></p>
+          {% if listing.description %}<p>{{ listing.description|truncate(180) }}</p>{% endif %}
+          <div class="action-links"><a class="action-button" href="{{ url_for('storefront.listing_detail', listing_id=listing['id']) }}">View details</a>
+          {% if current_user and current_user['role'] == 'buyer' %}<form method="post" action="{{ url_for('storefront.toggle_favorite', listing_id=listing['id']) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="secondary-button" type="submit">{% if listing['id'] in favorite_ids %}Remove saved{% else %}Save favorite{% endif %}</button></form>{% endif %}</div>
+        </div>
+      </article>
+    {% endfor %}
+    </div>
+    {% if page_count > 1 %}<nav class="pagination" aria-label="Listing pages">{% if page > 1 %}<a href="{{ url_for('storefront.browse', q=filters.q, category=filters.category, condition=filters.condition, availability=filters.availability, min_price=filters.min_price, max_price=filters.max_price, page=page-1) }}">Previous</a>{% endif %}<span>Page {{ page }} of {{ page_count }}</span>{% if page < page_count %}<a href="{{ url_for('storefront.browse', q=filters.q, category=filters.category, condition=filters.condition, availability=filters.availability, min_price=filters.min_price, max_price=filters.max_price, page=page+1) }}">Next</a>{% endif %}</nav>{% endif %}
+  {% else %}<div class="empty-state"><h3>No furniture matched those filters</h3><p>Try removing a filter or searching with fewer words.</p><a href="{{ url_for('storefront.browse') }}">Show all furniture</a></div>{% endif %}
+</section>
+{% endblock %}

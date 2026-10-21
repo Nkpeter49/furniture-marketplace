@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}{{ listing.item_name }} · {{ app_name }}{% endblock %}
+{% block heading %}{{ listing.item_name }}{% endblock %}
+{% block content %}
+<article class="detail-layout">
+  <section class="form-panel">
+    <p class="eyebrow">{{ listing.category }} · {{ listing.condition or 'Condition not provided' }}</p>
+    {% if images %}<div class="detail-photo-grid">{% for image in images %}<img src="{{ url_for('profiles.listing_image', image_id=image['id']) }}" alt="Photo {{ loop.index }} of {{ listing.item_name }}">{% endfor %}</div>{% else %}<div class="detail-no-photo image-placeholder">No photos provided</div>{% endif %}
+    <h2>{{ listing.item_name }}</h2><p class="listing-price">{% if listing.price %}{{ listing.price }} {{ listing.currency }}{% else %}Ask seller about price{% endif %}</p>
+    <p><span class="availability-pill">Seller-reported availability: {{ listing.availability }}{% if listing.quantity is not none %} · quantity {{ listing.quantity }} reported{% endif %}</span></p>
+    <dl class="listing-facts">{% for label, value in [('Material', listing.material), ('Dimensions', listing.dimensions), ('Colour', listing.colour), ('Condition', listing.condition)] %}{% if value %}<div><dt>{{ label }}:</dt><dd>{{ value }}</dd></div>{% endif %}{% endfor %}</dl>
+    {% if listing.description %}<h3>Description</h3><p class="preserve-lines">{{ listing.description }}</p>{% endif %}{% if listing.additional_details %}<h3>Additional details</h3><p class="preserve-lines">{{ listing.additional_details }}</p>{% endif %}
+    <p>Seller: <a href="{{ url_for('profiles.public_seller_profile', seller_id=listing.public_seller_id) }}">{{ listing.business_name }}</a></p>
+    {% if listing.publish_contact and listing.contact_number %}<p>Seller-published contact: {{ listing.contact_number }}</p>{% endif %}
+    <p class="privacy-callout">Availability and listing details are reported by the seller. Confirm price, availability, delivery, and other arrangements with the seller before making a decision. Beware of advance-payment pressure and suspicious links.</p>
+    {% if current_user and current_user['role'] == 'buyer' %}
+      <div class="action-links"><form method="post" action="{{ url_for('storefront.toggle_favorite', listing_id=listing['id']) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="secondary-button" type="submit">{% if is_favorite %}Remove from favorites{% else %}Save to favorites{% endif %}</button></form><a href="{{ url_for('support.report_listing', listing_id=listing['id']) }}">Report listing</a></div>
+      <section class="inquiry-panel"><h2>Ask the seller</h2><p>Your message will be visible only to you and this seller.</p><form method="post" action="{{ url_for('storefront.start_inquiry', listing_id=listing['id']) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><label for="inquiry">Your question</label><textarea id="inquiry" name="body" rows="4" minlength="5" maxlength="4000" required></textarea><button type="submit">Send inquiry</button></form></section>
+    {% elif current_user and current_user['role'] == 'seller' and current_user['id'] == listing.seller_id %}<p class="status">This is your listing.</p>
+    {% elif current_user %}<p><a href="{{ url_for('support.report_listing', listing_id=listing['id']) }}">Report listing</a></p>
+    {% else %}<p><a class="action-button" href="{{ url_for('auth.login', next=request.path) }}">Sign in to ask the seller</a></p>{% endif %}
+    {% if whatsapp_digits %}<a class="action-button secondary-action" href="https://wa.me/{{ whatsapp_digits }}" target="_blank" rel="noopener noreferrer">Open WhatsApp <span>(external contact, not marketplace messaging)</span></a>{% endif %}
+  </section>
+</article>
+{% endblock %}

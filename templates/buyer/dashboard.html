@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Buyer dashboard · {{ app_name }}{% endblock %}
+{% block heading %}Welcome, {{ user['display_name'] }}{% endblock %}
+{% block content %}
+<section class="dashboard-intro"><p class="eyebrow">Buyer account</p><h2>Your furniture workspace</h2><p>Browse seller-published furniture, save favorites, and ask a seller a question. Seller-reported availability can change, so confirm details before arranging a purchase.</p><div class="action-links"><a class="action-button" href="{{ url_for('storefront.browse') }}">Browse furniture</a><a class="action-button secondary-action" href="{{ url_for('auth.account') }}">Manage profile</a></div></section>
+<section class="stat-grid" aria-label="Your activity"><article class="stat-card"><strong>{{ stats.favorites }}</strong><span>Saved listings</span></article><article class="stat-card"><strong>{{ stats.conversations }}</strong><span>Conversations</span></article></section>
+<section class="dashboard-grid"><a class="dashboard-card" href="{{ url_for('storefront.favorites') }}"><h2>Saved furniture</h2><p>Return to listings you saved.</p></a><a class="dashboard-card" href="{{ url_for('storefront.conversations') }}"><h2>Conversations</h2><p>Ask sellers questions and view their replies privately.</p></a><a class="dashboard-card" href="{{ url_for('support.my_tickets') }}"><h2>Support requests</h2><p>See your requests and administrator responses.</p></a><a class="dashboard-card" href="{{ url_for('support.privacy_requests') }}"><h2>Privacy and data</h2><p>Ask to access, correct, export, or close your account.</p></a></section>
+{% endblock %}

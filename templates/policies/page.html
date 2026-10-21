@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}{{ policy.title }} · {{ app_name }}{% endblock %}
+{% block heading %}{{ policy.title }}{% endblock %}
+{% block content %}
+<article class="form-panel policy-content"><p class="draft-notice"><strong>DRAFT — NOT LEGAL ADVICE.</strong> Complete bracketed placeholders and obtain jurisdiction-specific review before public launch. A policy page alone does not establish legal compliance.</p>
+{% for heading, text in policy.sections %}<section><h2>{{ heading }}</h2><p class="preserve-lines">{{ text }}</p></section>{% endfor %}
+<p>Effective date: [CONFIGURE DATE]. Operator and jurisdiction details: [CONFIGURE BEFORE PUBLIC LAUNCH].</p><p><a href="{{ url_for('support.policy_index') }}">Back to all policies</a></p></article>
+{% endblock %}

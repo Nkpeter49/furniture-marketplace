@@ -1,0 +1,4 @@
+{% extends "base.html" %}
+{% block title %}Privacy Request Queue · {{ app_name }}{% endblock %}
+{% block heading %}Administrator Privacy Requests{% endblock %}
+{% block content %}<section class="form-panel">{% if requests %}<ul class="record-list">{% for item in requests %}<li><a href="{{ url_for('support.admin_privacy_request', request_id=item['id']) }}">#{{ item['id'] }} · {{ item['request_type']|title }}</a> · {{ item['requester'] }} · <span class="status-pill">{{ item['status'].replace('_', ' ')|title }}</span></li>{% endfor %}</ul>{% else %}<p>No privacy requests are waiting.</p>{% endif %}</section>{% endblock %}
