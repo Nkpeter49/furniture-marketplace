@@ -53,15 +53,7 @@ def verified_product_result(output: str, fields: dict[str, str]) -> str | None:
 def build_product_prompt(fields: dict[str, str]) -> str:
     supplied = {key: value for key, value in fields.items() if value}
     facts = json.dumps(supplied, ensure_ascii=False)
-    labels = (
-        ("item_name", None), ("category", "Category"), ("material", "Material"),
-        ("condition", "Condition"), ("dimensions", "Dimensions"), ("price", "Price"),
-        ("colour", "Colour"), ("additional_details", "Additional details"),
-    )
-    expected = ". ".join(
-        fields[key] if label is None else f"{label}: {fields[key]}"
-        for key, label in labels if fields.get(key, "").strip()
-    ) + "."
+    expected = build_product_fallback(fields)
     return (
         "Return the exact factual listing line shown as REQUIRED OUTPUT below. Omit every missing detail. Copy it without "
         "adding, removing, or changing any word or value. Blank fields are already omitted; never "
@@ -74,22 +66,30 @@ def build_product_prompt(fields: dict[str, str]) -> str:
 
 def build_product_fallback(fields: dict[str, str]) -> str:
     """Build a predictable listing from supplied fields without using AI."""
-    labels = (
-        ("item_name", None),
-        ("category", "Category"),
-        ("material", "Material"),
-        ("condition", "Condition"),
-        ("dimensions", "Dimensions"),
-        ("price", "Price"),
-        ("colour", "Colour"),
-        ("additional_details", "Additional details"),
-    )
-    parts = []
-    for key, label in labels:
-        value = fields.get(key, "").strip()
-        if value:
-            parts.append(value if label is None else f"{label}: {value}")
-    return ". ".join(parts) + "."
+    item_name = str(fields.get("item_name") or "").strip()
+    descriptors = [str(fields.get(key) or "").strip() for key in ("condition", "material")]
+    descriptors = [value for value in descriptors if value]
+    sentence = " ".join([*descriptors, item_name]).strip()
+    if sentence:
+        colour = str(fields.get("colour") or "").strip()
+        if colour:
+            sentence += f" in {colour}"
+        sentence = sentence[0].upper() + sentence[1:] + "."
+    parts = [sentence] if sentence else []
+    category = str(fields.get("category") or "").strip()
+    if category and category.casefold() not in item_name.casefold():
+        parts.append(f"Category: {category}.")
+    dimensions = str(fields.get("dimensions") or "").strip()
+    if dimensions:
+        parts.append(f"Dimensions: {dimensions}.")
+    price = str(fields.get("price") or "").strip()
+    currency = str(fields.get("currency") or "").strip()
+    if price and currency:
+        parts.append(f"Price: {price} {currency}.")
+    details = str(fields.get("additional_details") or "").strip()
+    if details:
+        parts.append(f"Additional details: {details}.")
+    return " ".join(parts)
 
 
 def build_reply_prompt(listing: dict, customer_message: str, policies: dict[str, str]) -> str:

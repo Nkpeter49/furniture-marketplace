@@ -21,7 +21,7 @@ from ai.prompts import (
 )
 from marketplace.database import get_db
 from marketplace.migrations import apply_migrations
-from marketplace.media import MAX_IMAGE_BYTES
+from marketplace.media import MAX_IMAGE_BYTES, prepare_image
 
 
 class MarketplaceTestCase(unittest.TestCase):
@@ -157,7 +157,7 @@ class ProductFlowTests(MarketplaceTestCase):
         exact = '{"item_name":"Blue chair","category":"Chair","material":"Linen","condition":"Used"}'
         self.assertEqual(
             verified_product_result(exact, facts),
-            "Blue chair. Category: Chair. Material: Linen. Condition: Used.",
+            "Used Linen Blue chair.",
         )
         changed = '{"item_name":"Blue chair","category":"Chair","material":"Linen","condition":"New"}'
         self.assertIsNone(verified_product_result(changed, facts))
@@ -184,7 +184,7 @@ class ProductFlowTests(MarketplaceTestCase):
         self.assertIn("outside the supplied facts", response.json["notice"])
         self.assertEqual(
             response.json["result"],
-            "Blue chair. Category: Chair. Material: Linen. Condition: Used.",
+            "Used Linen Blue chair.",
         )
         self.assertNotIn("simple", response.json["result"])
 
@@ -198,7 +198,7 @@ class ProductFlowTests(MarketplaceTestCase):
         self.assertEqual(response.json["source"], "seller_facts_fallback")
         self.assertIn("not AI-generated", response.json["notice"])
         self.assertIn("could not provide", response.json["notice"])
-        self.assertEqual(response.json["result"], "Dining table. Category: Table.")
+        self.assertEqual(response.json["result"], "Dining table.")
 
     def test_deterministic_fallback_omits_blank_fields(self):
         result = build_product_fallback({
@@ -209,9 +209,15 @@ class ProductFlowTests(MarketplaceTestCase):
             "dimensions": "",
             "price": "",
         })
-        self.assertEqual(result, "Blue chair. Category: Chair. Material: Linen. Condition: Used.")
+        self.assertEqual(result, "Used Linen Blue chair.")
         self.assertNotIn("Dimensions", result)
         self.assertNotIn("Price", result)
+
+    def test_facts_fallback_uses_natural_sentence_and_currency_with_price(self):
+        self.assertEqual(build_product_fallback({
+            "item_name": "Dining chair", "category": "Dining chair", "material": "wooden",
+            "condition": "Used", "colour": "cream", "price": "200", "currency": "USD",
+        }), "Used wooden Dining chair in cream. Price: 200 USD.")
 
 
 class AuthenticationAndRoleTests(MarketplaceTestCase):
@@ -343,6 +349,10 @@ class ProfileAndListingTests(MarketplaceTestCase):
         with self.app.app_context():
             row = get_db().execute("SELECT id, quantity FROM listings WHERE seller_id = ?", (seller_id,)).fetchone()
         self.assertEqual(row["quantity"], 5)
+        self.create_admin()
+        admin = self.app.test_client(); admin.get("/")
+        self.login(admin, "admin@example.test", "LongAdminPassword123!")
+        self.assertEqual(self.post_form(admin, f"/admin/listings/{row['id']}/review", {"action": "approve"}).status_code, 302)
         buyer = self.app.test_client(); buyer.get("/")
         self.register(buyer, "buyer@example.test", "buyer"); self.login(buyer, "buyer@example.test")
         self.assertIn(b"quantity 5 reported", buyer.get(f"/listings/{row['id']}").data)
@@ -454,10 +464,20 @@ class ProfileAndListingTests(MarketplaceTestCase):
                 "SELECT id, filename FROM listing_images WHERE listing_id = ?", (row["id"],)
             ).fetchone()
         self.assertEqual(row["status"], "published")
+        self.assertEqual(row["review_status"], "pending")
         self.assertEqual(row["currency"], "USD")
         self.assertRegex(image["filename"], r"^[0-9a-f]{32}\.jpg$")
         self.assertNotIn("unsafe", image["filename"])
 
+        self.assertNotIn(b"Oak chair", self.client.get(f"/sellers/{seller_id}").data)
+        self.assertEqual(self.client.get(f"/listings/{row['id']}").status_code, 404)
+        self.assertEqual(self.client.get(f"/media/listing/{image['id']}").status_code, 404)
+        self.create_admin()
+        admin = self.app.test_client()
+        admin.get("/")
+        self.login(admin, "admin@example.test", "LongAdminPassword123!")
+        self.assertEqual(admin.get("/admin/listings").status_code, 200)
+        self.assertEqual(self.post_form(admin, f"/admin/listings/{row['id']}/review", {"action": "approve"}).status_code, 302)
         public = self.client.get(f"/sellers/{seller_id}")
         self.assertIn(b"Oak chair", public.data)
         self.assertIn(b"125.00 USD", public.data)
@@ -525,6 +545,14 @@ class ProfileAndListingTests(MarketplaceTestCase):
         self.assertEqual(user["bio"], "")
         self.assertIsNone(user["profile_image"])
 
+    def test_valid_large_image_is_downscaled_to_1600_pixels_on_longest_side(self):
+        source = self.image_file("large.jpg", size=(2400, 1200), image_format="JPEG")
+        source[0].filename = source[1]
+        encoded, suffix = prepare_image(source[0])
+        with Image.open(BytesIO(encoded)) as stored:
+            self.assertEqual(suffix, ".jpg")
+            self.assertEqual(stored.size, (1600, 800))
+
     def test_missing_csrf_token_blocks_profile_and_listing_changes(self):
         self.register_seller(self.client, "seller@example.test", approved=True)
         response = self.client.post("/seller/profile", data={"business_name": "Changed"})
@@ -588,6 +616,69 @@ class MigrationSafetyTests(unittest.TestCase):
             db.close()
 
 
+class ListingApprovalTests(MarketplaceTestCase):
+    def _listing(self):
+        seller_id = self.register_seller(self.client, "review-seller@example.test", approved=True)
+        response = self.post_form(self.client, "/seller/listings/new", {
+            "item_name": "Review chair", "category": "Chair", "description": "Wooden chair.",
+            "price": "200", "currency": "USD", "status": "published", "photos": self.image_file(),
+        })
+        self.assertEqual(response.status_code, 302)
+        with self.app.app_context():
+            listing_id = get_db().execute("SELECT id FROM listings WHERE seller_id = ?", (seller_id,)).fetchone()[0]
+            image_id = get_db().execute("SELECT id FROM listing_images WHERE listing_id = ?", (listing_id,)).fetchone()[0]
+        return seller_id, listing_id, image_id
+
+    def _admin(self):
+        self.create_admin()
+        client = self.app.test_client()
+        client.get("/")
+        self.login(client, "admin@example.test", "LongAdminPassword123!")
+        return client
+
+    def test_pending_listing_is_invisible_and_approval_makes_it_visible(self):
+        seller_id, listing_id, image_id = self._listing()
+        anonymous = self.app.test_client()
+        self.assertNotIn(b"Review chair", anonymous.get("/marketplace?q=Review").data)
+        self.assertEqual(anonymous.get(f"/listings/{listing_id}").status_code, 404)
+        self.assertEqual(anonymous.get(f"/media/listing/{image_id}").status_code, 404)
+        self.assertNotIn(b"Review chair", anonymous.get(f"/sellers/{seller_id}").data)
+        self.assertIn(b"Pending review", self.client.get("/seller/listings").data)
+        admin = self._admin()
+        self.assertIn(b"Review chair", admin.get("/admin/listings").data)
+        self.assertEqual(self.post_form(admin, f"/admin/listings/{listing_id}/review", {"action": "approve"}).status_code, 302)
+        self.assertEqual(anonymous.get(f"/listings/{listing_id}").status_code, 200)
+        approved_image = anonymous.get(f"/media/listing/{image_id}")
+        self.assertEqual(approved_image.status_code, 200)
+        approved_image.close()
+
+    def test_rejection_hides_listing_and_shows_reason_to_seller(self):
+        _seller, listing_id, _image = self._listing()
+        admin = self._admin()
+        self.assertEqual(self.post_form(admin, f"/admin/listings/{listing_id}/review", {
+            "action": "reject", "reason": "Please replace this photo."
+        }).status_code, 302)
+        self.assertEqual(self.client.get(f"/listings/{listing_id}").status_code, 404)
+        page = self.client.get("/seller/listings")
+        self.assertIn(b"Rejected", page.data)
+        self.assertIn(b"Please replace this photo.", page.data)
+
+    def test_non_admin_denied_and_description_edit_requires_rereview(self):
+        _seller, listing_id, image_id = self._listing()
+        self.assertEqual(self.client.get("/admin/listings").status_code, 403)
+        admin = self._admin()
+        self.assertEqual(self.post_form(admin, f"/admin/listings/{listing_id}/review", {"action": "approve"}).status_code, 302)
+        edit = self.post_form(self.client, f"/seller/listings/{listing_id}/edit", {
+            "item_name": "Review chair", "category": "Chair", "description": "Updated wooden chair.",
+            "price": "200", "currency": "USD", "status": "published",
+        })
+        self.assertEqual(edit.status_code, 302)
+        anonymous = self.app.test_client()
+        self.assertEqual(anonymous.get(f"/media/listing/{image_id}").status_code, 404)
+        with self.app.app_context():
+            self.assertEqual(get_db().execute("SELECT review_status FROM listings WHERE id = ?", (listing_id,)).fetchone()[0], "pending")
+
+
 class StorefrontAndConversationTests(MarketplaceTestCase):
     def setUp(self):
         super().setUp()
@@ -604,9 +695,9 @@ class StorefrontAndConversationTests(MarketplaceTestCase):
             self.listing_ids = {}
             for name, category, material, condition, price, availability, status in rows:
                 cursor = get_db().execute(
-                    """INSERT INTO listings (seller_id, item_name, category, material, condition, price, currency, availability, status)
-                       VALUES (?, ?, ?, ?, ?, ?, 'KES', ?, ?)""",
-                    (self.seller_id, name, category, material, condition, price, availability, status),
+                    """INSERT INTO listings (seller_id, item_name, category, material, condition, price, currency, availability, status, review_status)
+                       VALUES (?, ?, ?, ?, ?, ?, 'KES', ?, ?, CASE WHEN ? = 'published' THEN 'approved' ELSE 'pending' END)""",
+                    (self.seller_id, name, category, material, condition, price, availability, status, status),
                 )
                 self.listing_ids[name] = cursor.lastrowid
             get_db().commit()
@@ -849,8 +940,8 @@ class SupportPrivacyAndPolicyTests(MarketplaceTestCase):
         seller_id = self.register_seller(self.client, "seller@example.test", approved=True)
         with self.app.app_context():
             cursor = get_db().execute(
-                """INSERT INTO listings (seller_id, item_name, category, status)
-                   VALUES (?, 'Oak table', 'Table', 'published')""", (seller_id,),
+                """INSERT INTO listings (seller_id, item_name, category, status, review_status)
+                   VALUES (?, 'Oak table', 'Table', 'published', 'approved')""", (seller_id,),
             )
             listing_id = cursor.lastrowid
             get_db().commit()

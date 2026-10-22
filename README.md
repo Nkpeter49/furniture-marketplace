@@ -24,7 +24,7 @@ From PowerShell in the project directory:
 
 Open `http://127.0.0.1:5000/` (it redirects to `/marketplace`). Keep the PowerShell window open while using the app. The local development server binds to loopback and must not be exposed directly to the internet.
 
-Useful pages: `/marketplace` for browsing; `/tools/product-description` for the standalone description tool; `/seller/dashboard` for sellers; `/conversations` for buyer conversations or approved-seller inquiries; `/admin/dashboard` for platform statistics. Sign in with the existing accounts; do not recreate or reset them.
+Useful pages: `/marketplace` for browsing; `/tools/product-description` for the standalone description tool; `/seller/dashboard` for sellers; `/conversations` for buyer conversations or approved-seller inquiries; `/admin/dashboard` for platform statistics.
 
 ## Trying the demo
 
@@ -32,9 +32,9 @@ Create buyer and seller accounts from **Create account** in the browser at `http
 
 For a first-time setup with no administrator account, run `flask --app app init-admin` in the project environment and follow the prompts to create one. This command refuses to create another admin if one already exists. Sign in as an administrator, open `/admin/users`, and approve the pending seller. If an administrator already exists, sign in to that account and use `/admin/users` directly.
 
-After approval, the seller can create a listing. New listings start as drafts; choose **Publish on my seller page** before saving so buyers can find the listing in the marketplace.
+After seller approval, create a listing and choose **Publish on my seller page**. A newly published listing remains private while it is pending review. An administrator must open **Listings to review** from the admin dashboard and approve it before buyers can find it in the marketplace. Changes to an approved listing’s item name, description, or photos send it back for review.
 
-The app initializes missing tables and applies additive SQLite migrations at startup. Version 1 adds profiles/listings; version 2 adds support/report/privacy and listing-moderation tables; version 3 adds favorites and participant-scoped conversations/messages; version 4 adds optional listing quantity and a hide/restore history table. Migrations preserve existing user rows. Do not delete `instance/` to troubleshoot.
+The app initializes missing tables and applies additive SQLite migrations at startup. Version 1 adds profiles/listings; version 2 adds support/report/privacy and listing-moderation tables; version 3 adds favorites and participant-scoped conversations/messages; version 4 adds optional listing quantity and a hide/restore history table; version 5 adds listing review status and reviewer details while marking existing published listings approved. Migrations preserve existing user and listing rows. Do not delete `instance/` to troubleshoot.
 
 ## Tests
 
@@ -44,7 +44,7 @@ The app initializes missing tables and applies additive SQLite migrations at sta
 
 Tests use temporary SQLite databases and do not require Ollama. A real local-model check is separate and should be reported only when it was actually run.
 
-Latest recorded local result (2026-10-21): `43 tests passed` with no failures or errors. A separate real local Ollama product request returned an exact JSON echo of seller facts; the app formatted only those verified facts. A real reply request produced unsupported delivery wording, which the app withheld and replaced with a labeled safe fallback. Browser review of the current app remains pending.
+The automated tests use temporary databases and exercise the Flask routes and safety checks. Browser rendering and responsive behavior have not been manually verified. A separate real local Ollama product request returned an exact JSON echo of seller facts; the app formatted only those verified facts. A real reply request produced unsupported delivery wording, which the app withheld and replaced with a labeled safe fallback.
 
 ## Local AI and privacy
 

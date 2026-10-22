@@ -2,6 +2,7 @@
 
 import re
 import sqlite3
+from datetime import datetime, timezone
 
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -14,6 +15,21 @@ from marketplace.media import InvalidImage, delete_image, prepare_image, store_i
 auth_bp = Blueprint("auth", __name__)
 EMAIL_PATTERN = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 MIN_PASSWORD_LENGTH = 12
+
+
+def _relative_time(stamp: str, now: datetime) -> str:
+    parsed = datetime.strptime(stamp, "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
+    seconds = max(0, int((now - parsed).total_seconds()))
+    if seconds < 60:
+        return "just now"
+    if seconds < 3600:
+        amount = seconds // 60
+        return f"{amount} minute{'s' if amount != 1 else ''} ago"
+    if seconds < 86400:
+        amount = seconds // 3600
+        return f"{amount} hour{'s' if amount != 1 else ''} ago"
+    amount = seconds // 86400
+    return f"{amount} day{'s' if amount != 1 else ''} ago"
 
 
 def valid_email(value: str) -> bool:
@@ -120,28 +136,67 @@ def buyer_dashboard():
     stats = {
         "favorites": db.execute("""SELECT COUNT(*) FROM favorites f JOIN listings l ON l.id = f.listing_id
             JOIN users s ON s.id = l.seller_id WHERE f.buyer_id = ? AND l.status = 'published'
+            AND l.review_status = 'approved'
             AND s.account_status = 'active' AND s.seller_approval = 'approved'
             AND NOT EXISTS (SELECT 1 FROM listing_moderation lm WHERE lm.listing_id = l.id AND lm.status = 'hidden')""", (user["id"],)).fetchone()[0],
         "conversations": db.execute("""SELECT COUNT(*) FROM conversations c JOIN users s ON s.id = c.seller_id
             WHERE c.buyer_id = ? AND s.account_status = 'active' AND s.seller_approval = 'approved'""", (user["id"],)).fetchone()[0],
     }
-    return render_template("buyer/dashboard.html", user=public_user(user), stats=stats)
+    favorites = db.execute(
+        """SELECT l.id, l.item_name, l.price, l.currency,
+                  (SELECT id FROM listing_images WHERE listing_id = l.id ORDER BY id LIMIT 1) AS image_id
+           FROM favorites f JOIN listings l ON l.id = f.listing_id
+           JOIN users s ON s.id = l.seller_id
+           WHERE f.buyer_id = ? AND l.status = 'published' AND l.review_status = 'approved'
+             AND s.account_status = 'active' AND s.seller_approval = 'approved'
+             AND NOT EXISTS (SELECT 1 FROM listing_moderation lm WHERE lm.listing_id = l.id AND lm.status = 'hidden')
+           ORDER BY f.created_at DESC LIMIT 5""", (user["id"],),
+    ).fetchall()
+    recent_conversations = db.execute(
+        """SELECT c.id, c.updated_at, l.item_name, sp.business_name,
+                  (SELECT body FROM messages m WHERE m.conversation_id = c.id ORDER BY m.id DESC LIMIT 1) AS preview
+           FROM conversations c JOIN listings l ON l.id = c.listing_id
+           JOIN seller_profiles sp ON sp.user_id = c.seller_id JOIN users s ON s.id = c.seller_id
+           WHERE c.buyer_id = ? AND s.account_status = 'active' AND s.seller_approval = 'approved'
+           ORDER BY c.updated_at DESC LIMIT 5""", (user["id"],),
+    ).fetchall()
+    return render_template("buyer/dashboard.html", user=public_user(user), stats=stats,
+                           favorites=favorites, recent_conversations=recent_conversations)
 
 
 @auth_bp.get("/seller/dashboard")
 @role_required("seller")
 def seller_dashboard():
     user = current_user()
-    stats = {"listings": 0, "published": 0, "inquiries": 0}
-    if user["seller_approval"] == "approved" and user["account_status"] == "active":
-        db = get_db()
-        stats = {
-            "listings": db.execute("SELECT COUNT(*) FROM listings WHERE seller_id = ? AND status <> 'removed'", (user["id"],)).fetchone()[0],
-            "published": db.execute("""SELECT COUNT(*) FROM listings l WHERE l.seller_id = ? AND l.status = 'published'
-                AND NOT EXISTS (SELECT 1 FROM listing_moderation lm WHERE lm.listing_id = l.id AND lm.status = 'hidden')""", (user["id"],)).fetchone()[0],
-            "inquiries": db.execute("SELECT COUNT(*) FROM conversations WHERE seller_id = ?", (user["id"],)).fetchone()[0],
-        }
-    return render_template("seller/dashboard.html", user=public_user(user), stats=stats)
+    db = get_db()
+    profile = db.execute("SELECT business_name FROM seller_profiles WHERE user_id = ?", (user["id"],)).fetchone()
+    stats = {
+        "active": db.execute("""SELECT COUNT(*) FROM listings l WHERE l.seller_id = ? AND l.status = 'published'
+            AND l.review_status = 'approved' AND NOT EXISTS (SELECT 1 FROM listing_moderation lm WHERE lm.listing_id = l.id AND lm.status = 'hidden')""", (user["id"],)).fetchone()[0],
+        "inquiries": db.execute("SELECT COUNT(*) FROM conversations WHERE seller_id = ?", (user["id"],)).fetchone()[0],
+        "pending": db.execute("SELECT COUNT(*) FROM listings WHERE seller_id = ? AND status <> 'removed' AND review_status = 'pending'", (user["id"],)).fetchone()[0],
+    }
+    listings = db.execute(
+        """SELECT l.id, l.item_name, l.price, l.currency, l.availability, l.review_status,
+                  l.review_reason, (SELECT id FROM listing_images li WHERE li.listing_id = l.id ORDER BY li.id LIMIT 1) AS image_id
+           FROM listings l WHERE l.seller_id = ? AND l.status <> 'removed'
+           ORDER BY l.updated_at DESC, l.id DESC LIMIT 5""", (user["id"],),
+    ).fetchall()
+    inquiries = db.execute(
+        """SELECT c.id, b.display_name AS buyer_name, l.item_name,
+                  m.body AS preview, m.created_at AS message_at
+           FROM conversations c JOIN users b ON b.id = c.buyer_id
+           JOIN listings l ON l.id = c.listing_id
+           JOIN messages m ON m.id = (SELECT id FROM messages WHERE conversation_id = c.id AND author_id = c.buyer_id ORDER BY id DESC LIMIT 1)
+           WHERE c.seller_id = ? AND ? = 'approved'
+           ORDER BY m.created_at DESC, m.id DESC LIMIT 5""", (user["id"], user["seller_approval"]),
+    ).fetchall()
+    now = datetime.now(timezone.utc)
+    inquiries = [{**dict(row), "relative_time": _relative_time(row["message_at"], now)} for row in inquiries]
+    status_label = "Suspended" if user["account_status"] == "suspended" else ("Pending approval" if user["seller_approval"] == "pending" else "Approved & Active")
+    return render_template("seller/dashboard.html", user=public_user(user), stats=stats,
+                           business_name=profile["business_name"] if profile else user["display_name"],
+                           account_status_label=status_label, listings=listings, inquiries=inquiries)
 
 
 @auth_bp.route("/account", methods=["GET", "POST"])
@@ -248,4 +303,11 @@ def change_password():
 @role_required("admin")
 def admin_dashboard():
     from marketplace.admin import _marketplace_stats
-    return render_template("admin/dashboard.html", stats=_marketplace_stats())
+    db = get_db()
+    pending_listings = db.execute(
+        """SELECT l.id, l.item_name, l.category, u.display_name AS seller_name
+           FROM listings l JOIN users u ON u.id = l.seller_id
+           WHERE l.status = 'published' AND l.review_status = 'pending'
+           ORDER BY l.updated_at, l.id LIMIT 5"""
+    ).fetchall()
+    return render_template("admin/dashboard.html", stats=_marketplace_stats(), pending_listings=pending_listings)

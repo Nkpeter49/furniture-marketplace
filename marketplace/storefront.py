@@ -29,6 +29,7 @@ def _public_listing_query():
         JOIN seller_profiles sp ON sp.user_id = seller.id
         WHERE l.status = 'published' AND seller.account_status = 'active'
           AND seller.seller_approval = 'approved'
+          AND l.review_status = 'approved'
           AND NOT EXISTS (SELECT 1 FROM listing_moderation lm
                           WHERE lm.listing_id = l.id AND lm.status = 'hidden')"""
 
@@ -162,6 +163,7 @@ def favorites():
             JOIN users seller ON seller.id = l.seller_id JOIN seller_profiles sp ON sp.user_id = seller.id
             WHERE f.buyer_id = ? AND l.status = 'published' AND seller.account_status = 'active'
               AND seller.seller_approval = 'approved'
+              AND l.review_status = 'approved'
               AND NOT EXISTS (SELECT 1 FROM listing_moderation lm WHERE lm.listing_id = l.id AND lm.status = 'hidden')
             ORDER BY f.created_at DESC""",
         (current_user()["id"],),

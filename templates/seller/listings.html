@@ -9,7 +9,7 @@
     <div class="listing-manage-list">
       {% for listing in listings %}
         <article class="manage-card">
-          <div><p class="eyebrow">{{ listing['category'] }} · {{ listing['status']|title }}</p>{% if listing['moderation_status'] == 'hidden' %}<p class="status-warning" role="status">Temporarily hidden during administrator review. You cannot republish it until review is complete.</p>{% endif %}<h3>{{ listing['item_name'] }}</h3>
+          <div><p class="eyebrow">{{ listing['category'] }} · {{ listing['status']|title }}</p>{% if listing['moderation_status'] == 'hidden' %}<p class="status-warning" role="status">Temporarily hidden during administrator review. You cannot republish it until review is complete.</p>{% endif %}<p class="review-state">{% if listing['review_status'] == 'approved' %}Approved{% elif listing['review_status'] == 'rejected' %}Rejected{% else %}Pending review{% endif %}</p>{% if listing['review_status'] == 'rejected' and listing['review_reason'] %}<p class="status-warning">Admin reason: {{ listing['review_reason'] }}</p>{% endif %}<h3>{{ listing['item_name'] }}</h3>
             {% if listing['price'] %}<p>{{ listing['price'] }} {{ listing['currency'] }}</p>{% else %}<p>Price not provided</p>{% endif %}
             <p>Seller reports: {{ listing['availability'] }}{% if listing['quantity'] is not none %} · Quantity: {{ listing['quantity'] }}{% endif %} · Photos: {{ listing['photo_count'] }}</p>
           </div>

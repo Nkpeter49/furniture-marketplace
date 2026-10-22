@@ -12,6 +12,7 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 MAX_IMAGE_BYTES = 5 * 1024 * 1024
 MAX_IMAGE_PIXELS = 16_000_000
 MAX_IMAGE_SIDE = 6_000
+STORED_IMAGE_MAX_SIDE = 1_600
 SAFE_FILENAME = re.compile(r"^[0-9a-f]{32}\.(?:jpg|png)$")
 
 
@@ -49,6 +50,11 @@ def prepare_image(upload) -> tuple[bytes, str]:
             with Image.open(BytesIO(raw)) as image:
                 image.load()
                 image = ImageOps.exif_transpose(image)
+                if max(image.size) > STORED_IMAGE_MAX_SIDE:
+                    image.thumbnail(
+                        (STORED_IMAGE_MAX_SIDE, STORED_IMAGE_MAX_SIDE),
+                        Image.Resampling.LANCZOS,
+                    )
                 has_alpha = image.mode in {"RGBA", "LA"} or (
                     image.mode == "P" and "transparency" in image.info
                 )

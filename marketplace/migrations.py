@@ -216,11 +216,27 @@ def _inventory_quantity_and_listing_history(db: sqlite3.Connection) -> None:
     db.execute("CREATE INDEX IF NOT EXISTS idx_listing_moderation_history_listing ON listing_moderation_history (listing_id, created_at)")
 
 
+def _listing_approval(db: sqlite3.Connection) -> None:
+    added_review_status = not _has_column(db, "listings", "review_status")
+    if added_review_status:
+        db.execute("ALTER TABLE listings ADD COLUMN review_status TEXT NOT NULL DEFAULT 'pending' CHECK (review_status IN ('pending', 'approved', 'rejected'))")
+    if not _has_column(db, "listings", "review_reason"):
+        db.execute("ALTER TABLE listings ADD COLUMN review_reason TEXT NOT NULL DEFAULT ''")
+    if not _has_column(db, "listings", "reviewer_id"):
+        db.execute("ALTER TABLE listings ADD COLUMN reviewer_id INTEGER REFERENCES users(id)")
+    if not _has_column(db, "listings", "reviewed_at"):
+        db.execute("ALTER TABLE listings ADD COLUMN reviewed_at TEXT")
+    if added_review_status:
+        db.execute("UPDATE listings SET review_status = 'approved' WHERE status = 'published'")
+    db.execute("CREATE INDEX IF NOT EXISTS idx_listings_review_status ON listings (review_status, status, updated_at)")
+
+
 MIGRATIONS = (
     (1, "stage_2_profiles_and_listings", _stage_2_profiles_and_listings),
     (2, "support_reports_and_privacy_requests", _support_reports_and_privacy_requests),
     (3, "storefront_favorites_and_conversations", _storefront_favorites_and_conversations),
     (4, "inventory_quantity_and_listing_history", _inventory_quantity_and_listing_history),
+    (5, "listing_approval", _listing_approval),
 )
 
 

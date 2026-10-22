@@ -1,24 +1,23 @@
 {% extends "base.html" %}
-{% block title %}Seller dashboard · Furniture Marketplace{% endblock %}
-{% block heading %}Welcome, {{ user['display_name'] }}{% endblock %}
+{% block title %}Seller dashboard · {{ app_name }}{% endblock %}
+{% block heading %}{% endblock %}
 {% block content %}
-<section class="form-panel">
-  <h2>Seller dashboard</h2>
-  {% if user['account_status'] == 'suspended' %}
-    <p class="status-warning">This seller account is suspended. Contact the administrator for help.</p>
-  {% elif user['seller_approval'] == 'pending' %}
-    <p class="status-warning">Your account is waiting for administrator approval. You cannot publish listings yet.</p>
-  {% else %}
-    <p class="status-success">Your seller account is approved. Published listings appear in marketplace search and on your public seller page.</p>
-    <section class="stat-grid" aria-label="Your listing and inquiry counts"><article class="stat-card"><strong>{{ stats.listings }}</strong><span>Active listings</span></article><article class="stat-card"><strong>{{ stats.published }}</strong><span>Published listings</span></article><article class="stat-card"><strong>{{ stats.inquiries }}</strong><span>Buyer inquiries</span></article></section>
-    <div class="action-links">
-      <a class="action-button" href="{{ url_for('profiles.edit_seller_profile') }}">Edit business profile</a>
-      <a class="action-button" href="{{ url_for('profiles.seller_listings') }}">Manage listings</a>
-      <a class="action-button secondary-action" href="{{ url_for('storefront.conversations') }}">Buyer inquiries</a>
-      <a class="action-button secondary-action" href="{{ url_for('storefront.browse') }}">Preview marketplace</a>
-      <a href="{{ url_for('profiles.public_seller_profile', seller_id=user['id']) }}">View public seller page</a>
-    </div>
-  {% endif %}
-  <p><a href="{{ url_for('auth.account') }}">Manage your account</a> · <a href="{{ url_for('support.my_tickets') }}">Support requests</a> · <a href="{{ url_for('support.privacy_requests') }}">Privacy and data requests</a> · <a href="{{ url_for('support.my_reports') }}">Your reports</a></p>
+<section class="dashboard-welcome"><p class="eyebrow">Seller workspace</p><h2>Welcome back, <strong>{{ business_name }}</strong></h2><span class="account-status-badge {{ 'status-pending' if user['seller_approval'] == 'pending' else ('status-suspended' if user['account_status'] == 'suspended' else '') }}">{{ account_status_label }}</span>{% if user['seller_approval'] == 'pending' %}<p class="seller-status-note">Your account is waiting for administrator approval. You cannot publish listings yet.</p>{% elif user['account_status'] == 'suspended' %}<p class="seller-status-note">This seller account is suspended. Contact the administrator for help.</p>{% endif %}</section>
+<section class="seller-stats" aria-label="Seller activity">
+  <article class="seller-stat-card"><span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 5h16v15H4zM8 5V3h8v2M8 9h8M8 13h8M8 17h5"/></svg></span><div><strong>{{ stats.active }}</strong><span>Active listings</span></div></article>
+  <article class="seller-stat-card"><span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 5h16v12H9l-5 4zM8 9h8M8 13h5"/></svg></span><div><strong>{{ stats.inquiries }}</strong><span>Open buyer inquiries</span></div></article>
+  <article class="seller-stat-card"><span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 20 7v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7zM9 12l2 2 4-4"/></svg></span><div><strong>{{ stats.pending }}</strong><span>Pending review listings</span></div></article>
+</section>
+<section class="dashboard-columns">
+  <article class="dashboard-panel"><header class="panel-heading"><div><p class="eyebrow">Your furniture</p><h2>My Inventory</h2></div>{% if user['account_status'] == 'active' and user['seller_approval'] == 'approved' %}<a class="action-button secondary-action" href="{{ url_for('profiles.seller_listings') }}">All listings</a>{% endif %}</header>
+  {% if listings %}<ul class="inventory-list">{% for listing in listings %}<li class="inventory-row">
+    {% if listing['image_id'] %}<img class="inventory-thumb" src="{{ url_for('profiles.seller_listing_photo', listing_id=listing['id'], image_id=listing['image_id']) }}" alt="Photo of {{ listing['item_name'] }}">{% else %}<span class="inventory-thumb image-placeholder" aria-label="No photo">Furniture</span>{% endif %}
+    <div class="inventory-info"><strong>{{ listing['item_name'] }}</strong><span>{{ listing['price'] ~ ' ' ~ listing['currency'] if listing['price'] else 'Price not provided' }}</span><span class="availability-text">{{ listing['availability']|title }}</span><span class="review-state state-{{ listing['review_status'] }}">{{ 'Pending review' if listing['review_status'] == 'pending' else listing['review_status']|title }}</span>{% if listing['review_status'] == 'rejected' and listing['review_reason'] %}<small>{{ listing['review_reason'] }}</small>{% endif %}</div>
+    <a class="action-button secondary-action inventory-edit" href="{{ url_for('profiles.edit_listing', listing_id=listing['id']) }}">Edit</a>
+  </li>{% endfor %}</ul>{% else %}<div class="empty-state"><h3>Your inventory is empty</h3>{% if user['account_status'] == 'active' and user['seller_approval'] == 'approved' %}<p>Add a furniture listing when you’re ready.</p><a class="action-button" href="{{ url_for('profiles.create_listing') }}">Add furniture</a>{% else %}<p>Listing tools are available after administrator approval.</p>{% endif %}</div>{% endif %}</article>
+  <article class="dashboard-panel"><header class="panel-heading"><div><p class="eyebrow">Private buyer messages</p><h2>AI assistant &amp; Inquiries</h2></div>{% if user['account_status'] == 'active' and user['seller_approval'] == 'approved' %}<a href="{{ url_for('storefront.conversations') }}">All inquiries</a>{% endif %}</header>
+    <p class="assistant-note">AI drafts are for your review and are never sent automatically.</p>
+    {% if inquiries %}<ul class="inquiry-list">{% for inquiry in inquiries %}<li><div class="inquiry-meta"><strong>{{ inquiry['buyer_name'] }}</strong><time>{{ inquiry['relative_time'] }}</time></div><p class="inquiry-subject">{{ inquiry['item_name'] }}</p><p class="inquiry-preview">{{ inquiry['preview']|truncate(110, True, '…') }}</p><a class="action-button draft-reply-button" href="{{ url_for('storefront.conversation_detail', conversation_id=inquiry['id'], draft=1) }}">Draft AI Reply</a></li>{% endfor %}</ul>{% else %}<div class="empty-state"><h3>No inquiries yet</h3><p>Buyer messages about your listings will appear here.</p></div>{% endif %}
+  </article>
 </section>
 {% endblock %}

@@ -2,12 +2,13 @@
 
 import click
 import sqlite3
-from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
+from flask import Blueprint, abort, current_app, flash, g, redirect, render_template, request, send_file, url_for
 from werkzeug.security import generate_password_hash
 
 from marketplace.database import get_db, init_db
-from marketplace.security import role_required
+from marketplace.security import current_user, role_required
 from marketplace.auth import MIN_PASSWORD_LENGTH, valid_email
+from marketplace.media import image_path
 
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
@@ -19,7 +20,8 @@ def _marketplace_stats():
         "buyers": db.execute("SELECT COUNT(*) FROM users WHERE role = 'buyer' AND account_status = 'active'").fetchone()[0],
         "sellers": db.execute("SELECT COUNT(*) FROM users WHERE role = 'seller' AND account_status = 'active'").fetchone()[0],
         "pending_sellers": db.execute("SELECT COUNT(*) FROM users WHERE role = 'seller' AND account_status = 'active' AND seller_approval = 'pending'").fetchone()[0],
-        "published_listings": db.execute("SELECT COUNT(*) FROM listings l JOIN users u ON u.id = l.seller_id WHERE l.status = 'published' AND u.account_status = 'active' AND u.seller_approval = 'approved' AND NOT EXISTS (SELECT 1 FROM listing_moderation lm WHERE lm.listing_id = l.id AND lm.status = 'hidden')").fetchone()[0],
+        "pending_listings": db.execute("SELECT COUNT(*) FROM listings WHERE status = 'published' AND review_status = 'pending'").fetchone()[0],
+        "published_listings": db.execute("SELECT COUNT(*) FROM listings l JOIN users u ON u.id = l.seller_id WHERE l.status = 'published' AND l.review_status = 'approved' AND u.account_status = 'active' AND u.seller_approval = 'approved' AND NOT EXISTS (SELECT 1 FROM listing_moderation lm WHERE lm.listing_id = l.id AND lm.status = 'hidden')").fetchone()[0],
         "conversations": db.execute("SELECT COUNT(*) FROM conversations").fetchone()[0],
         "open_reports": db.execute("SELECT COUNT(*) FROM user_reports WHERE status IN ('open', 'in_review')").fetchone()[0],
         "open_support": db.execute("SELECT COUNT(*) FROM support_tickets WHERE status <> 'resolved'").fetchone()[0],
@@ -30,6 +32,53 @@ def _marketplace_stats():
 @role_required("admin")
 def dashboard():
     return render_template("admin/dashboard.html", stats=_marketplace_stats())
+
+
+@admin_bp.get("/listings")
+@role_required("admin")
+def listings_to_review():
+    rows = get_db().execute(
+        """SELECT l.*, u.display_name AS seller_name, u.email AS seller_email, sp.business_name,
+                  (SELECT id FROM listing_images WHERE listing_id = l.id ORDER BY id LIMIT 1) AS cover_image_id
+           FROM listings l JOIN users u ON u.id = l.seller_id
+           LEFT JOIN seller_profiles sp ON sp.user_id = u.id
+           WHERE l.status = 'published' AND l.review_status = 'pending'
+           ORDER BY l.updated_at, l.id"""
+    ).fetchall()
+    image_rows = {row["id"]: get_db().execute("SELECT id FROM listing_images WHERE listing_id = ? ORDER BY id", (row["id"],)).fetchall() for row in rows}
+    return render_template("admin/listings.html", listings=rows, review_images=image_rows)
+
+
+@admin_bp.get("/listing-images/<int:image_id>")
+@role_required("admin")
+def listing_review_image(image_id: int):
+    row = get_db().execute("SELECT filename FROM listing_images WHERE id = ?", (image_id,)).fetchone()
+    if row is None:
+        abort(404)
+    path = image_path(row["filename"], current_app.instance_path)
+    if path is None:
+        abort(404)
+    return send_file(path, conditional=True, max_age=0, download_name=path.name)
+
+
+@admin_bp.post("/listings/<int:listing_id>/review")
+@role_required("admin")
+def review_listing(listing_id: int):
+    action = request.form.get("action", "")
+    reason = request.form.get("reason", "").strip()
+    if action not in {"approve", "reject"} or len(reason) > 300 or (action == "reject" and not 5 <= len(reason) <= 300):
+        abort(400, description="Choose approve, or provide a rejection reason of 5 to 300 characters.")
+    db = get_db()
+    row = db.execute("SELECT id FROM listings WHERE id = ? AND status = 'published' AND review_status = 'pending'", (listing_id,)).fetchone()
+    if row is None:
+        abort(404)
+    db.execute(
+        "UPDATE listings SET review_status = ?, review_reason = ?, reviewer_id = ?, reviewed_at = CURRENT_TIMESTAMP WHERE id = ?",
+        ("approved" if action == "approve" else "rejected", reason if action == "reject" else "", current_user()["id"], listing_id),
+    )
+    db.commit()
+    flash("Listing approved." if action == "approve" else "Listing rejected with your reason.", "success")
+    return redirect(url_for("admin.listings_to_review"))
 
 
 @admin_bp.get("/users")

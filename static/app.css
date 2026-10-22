@@ -90,6 +90,7 @@ th, td { border-bottom: 1px solid #e1ded5; padding: 12px 10px; vertical-align: t
 .listing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 18px; }
 .listing-card, .manage-card { overflow: hidden; border: 1px solid #e1ded5; border-radius: 14px; background: #fffefa; box-shadow: 0 8px 28px rgb(45 54 45 / 4%); }
 .listing-photo { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; background: #eeede7; }
+.listing-card > a { display: block; }
 .image-placeholder { display: grid; place-items: center; color: #626a64; }
 .listing-card-body { padding: 18px; }
 .listing-card-body h3, .manage-card h3 { margin: 0 0 8px; font-size: 1.15rem; }
@@ -130,9 +131,22 @@ small { color: #4f5b53; line-height: 1.5; }
 .filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); gap: 10px 16px; }
 .listing-section { margin-top: 28px; }
 .detail-layout { max-width: 940px; margin: 0 auto; }
-.detail-photo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 12px; }
-.detail-photo-grid img { display: block; width: 100%; aspect-ratio: 4 / 3; border-radius: 12px; object-fit: cover; background: #eeede7; }
-.detail-no-photo { display: grid; place-items: center; min-height: 220px; border-radius: 12px; background: #eeede7; color: #626a64; }
+.detail-gallery { display: grid; gap: 12px; }
+.gallery-stage, .detail-no-photo { width: 100%; aspect-ratio: 4 / 3; max-height: 600px; min-height: 220px; overflow: hidden; border-radius: 12px; background: #eeede7; }
+.gallery-stage { position: relative; display: grid; place-items: center; }
+.gallery-image { display: none; width: 100%; height: 100%; object-fit: contain; }
+.gallery-controls:has(#gallery-control-1:checked) ~ .gallery-stage .gallery-image-1,
+.gallery-controls:has(#gallery-control-2:checked) ~ .gallery-stage .gallery-image-2,
+.gallery-controls:has(#gallery-control-3:checked) ~ .gallery-stage .gallery-image-3,
+.gallery-controls:has(#gallery-control-4:checked) ~ .gallery-stage .gallery-image-4,
+.gallery-controls:has(#gallery-control-5:checked) ~ .gallery-stage .gallery-image-5 { display: block; }
+.gallery-controls { display: flex; flex-wrap: wrap; gap: 10px; }
+.gallery-radio { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; clip-path: inset(50%); }
+.gallery-thumbnail { margin: 0; cursor: pointer; }
+.gallery-thumbnail img { display: block; width: 76px; height: 76px; border: 2px solid transparent; border-radius: 8px; object-fit: cover; }
+.gallery-radio:checked + .gallery-thumbnail img { border-color: #1f5a3a; }
+.gallery-radio:focus-visible + .gallery-thumbnail { outline: 3px solid #a8c3a8; outline-offset: 2px; }
+.detail-no-photo { color: #626a64; }
 .inquiry-panel, .ai-draft-panel { margin-top: 26px; border-top: 1px solid #e1ded5; padding-top: 20px; }
 .message-thread { display: grid; gap: 12px; margin: 20px 0; padding: 0; list-style: none; }
 .message-card { max-width: 84%; border: 1px solid #e1ded5; border-radius: 12px; background: #f7f6f1; padding: 14px; }
@@ -156,16 +170,109 @@ small { color: #4f5b53; line-height: 1.5; }
 .send-message-form { display: grid; gap: 8px; margin-top: 22px; border-top: 1px solid #e1ded5; padding-top: 20px; }
 .ai-draft-panel summary { min-height: 44px; color: #315d40; font-weight: 700; cursor: pointer; }
 
+/* Role dashboards and compact responsive site navigation. */
+.page-header { max-width: 100%; text-align: left; }
+.page-header > h1:empty { display: none; }
+.site-nav { position: relative; min-height: 72px; margin: -40px -24px 24px; border-bottom: 1px solid #e5e3dc; background: #fff; padding: 12px 24px; }
+.brand-link { display: inline-flex; align-items: center; gap: 9px; min-width: 185px; color: #1f5a3a; line-height: 1.1; }
+.brand-link svg { width: 32px; height: 32px; flex: none; }
+.brand-link span { display: grid; gap: 3px; }
+.brand-link small, .account-nav small { color: #626a64; font-size: .74rem; font-weight: 500; }
+.primary-nav, .nav-utility { display: flex; align-items: center; gap: 4px; }
+.primary-nav a, .nav-utility > a, .more-nav summary { min-height: 42px; display: inline-flex; align-items: center; border-radius: 8px; padding: 8px 11px; color: #304e38; font-weight: 650; text-decoration: none; }
+.primary-nav a[aria-current="page"] { border-bottom: 3px solid #1f5a3a; border-radius: 8px 8px 0 0; background: #edf3e9; }
+.nav-utility { margin-left: auto; }
+.account-nav { flex-direction: column; align-items: flex-end !important; justify-content: center; gap: 2px; line-height: 1.1; }
+.account-nav strong { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.more-nav { position: relative; }
+.more-nav summary { cursor: pointer; list-style: none; }
+.more-nav summary::-webkit-details-marker { display: none; }
+.more-nav summary::after { content: "⌄"; margin-left: 7px; }
+.more-menu { position: absolute; z-index: 10; top: 100%; right: 0; display: grid; min-width: 220px; max-height: min(75vh, 520px); overflow-y: auto; border: 1px solid #dce2d8; border-radius: 10px; background: white; padding: 8px; box-shadow: 0 12px 28px rgb(20 35 24 / 14%); }
+.more-menu a, .more-menu button { display: block; border-radius: 6px; padding: 9px 10px; color: #234b32; text-align: left; text-decoration: none; }
+.more-menu a:hover { background: #edf3e9; }
+.more-menu form { margin: 0; }
+.more-menu .link-button { width: 100%; }
+.dashboard-welcome { margin: 0 -24px 24px; background: #eee8db; padding: 30px clamp(22px, 5vw, 56px); }
+.dashboard-welcome .eyebrow { color: #526058; }
+.dashboard-welcome h2 { margin: 0 0 16px; font-size: clamp(1.7rem, 4vw, 2.5rem); font-weight: 450; line-height: 1.2; }
+.dashboard-welcome h2 strong { font-weight: 750; }
+.account-status-badge { display: inline-flex; min-height: 34px; align-items: center; border-radius: 999px; background: #1f5a3a; padding: 7px 15px; color: white; font-size: .9rem; font-weight: 700; }
+.account-status-badge.status-pending { background: #775516; }
+.account-status-badge.status-suspended { background: #762d25; }
+.seller-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 0 0 24px; }
+.seller-stat-card { display: flex; align-items: center; gap: 15px; min-width: 0; border: 1px solid #e1ded5; border-radius: 12px; background: #fff; padding: 20px; box-shadow: 0 5px 18px rgb(45 54 45 / 4%); }
+.seller-stat-card > div { display: grid; gap: 2px; }
+.seller-stat-card strong { color: #1f5a3a; font-size: 1.9rem; line-height: 1.1; }
+.seller-stat-card span:not(.stat-icon) { color: #4f5b53; font-size: .92rem; }
+.stat-icon { display: grid; width: 48px; height: 48px; flex: none; place-items: center; border-radius: 10px; background: #e7efe3; color: #1f5a3a; }
+.stat-icon svg { width: 25px; height: 25px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.dashboard-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; }
+.dashboard-panel { min-width: 0; border: 1px solid #e1ded5; border-radius: 12px; background: #fff; padding: 20px; box-shadow: 0 7px 22px rgb(45 54 45 / 5%); }
+.panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.panel-heading h2 { margin: 0; }
+.panel-heading .eyebrow { margin-bottom: 4px; }
+.inventory-list, .inquiry-list, .admin-queue { display: grid; margin: 0; padding: 0; list-style: none; }
+.inventory-row { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; align-items: center; gap: 12px; border-top: 1px solid #eceae4; padding: 12px 0; }
+.inventory-thumb { display: grid; width: 64px; height: 64px; place-items: center; border-radius: 8px; background: #eeede7; object-fit: cover; color: #626a64; font-size: .7rem; }
+.inventory-info { display: grid; min-width: 0; gap: 3px; overflow-wrap: anywhere; }
+.inventory-info strong { color: #26362c; }
+.inventory-info > span { font-size: .88rem; }
+.inventory-info .availability-text { color: #24623d; font-weight: 650; }
+.review-state { margin: 0; color: #4b5c4f; font-size: .8rem; font-weight: 700; }
+.review-state.state-pending { color: #775516; }
+.review-state.state-rejected { color: #762d25; }
+.inventory-edit { min-height: 36px; padding: 7px 10px; }
+.assistant-note { margin: 0 0 12px; color: #59645c; font-size: .86rem; }
+.inquiry-list > li { border-top: 1px solid #eceae4; padding: 14px 0; }
+.inquiry-meta { display: flex; justify-content: space-between; gap: 10px; }
+.inquiry-meta time { flex: none; color: #626a64; font-size: .8rem; }
+.inquiry-subject { margin: 3px 0; color: #4b5c4f; font-size: .86rem; font-weight: 650; }
+.inquiry-preview { margin: 0 0 10px; color: #4f5b53; overflow-wrap: anywhere; }
+.draft-reply-button { min-height: 38px; }
+.admin-stat-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 0 0 24px; }
+.admin-stat-grid .seller-stat-card { padding: 16px; }
+.admin-stat-grid .seller-stat-card strong { font-size: 1.65rem; }
+.admin-action-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.admin-action-grid .dashboard-card { padding: 14px; }
+.admin-action-grid .dashboard-card h3 { margin: 0 0 5px; color: #1f5a3a; }
+.admin-action-grid .dashboard-card p { font-size: .88rem; }
+.admin-queue li { display: flex; justify-content: space-between; align-items: center; gap: 12px; border-top: 1px solid #eceae4; padding: 13px 0; }
+.admin-queue li div { display: grid; gap: 3px; }
+.admin-queue li span { color: #626a64; font-size: .84rem; }
+.send-message-form label { margin-bottom: 3px; }
+.send-message-form small { display: block; margin: 0 0 6px; line-height: 1.5; }
+
 @media (max-width: 760px) {
   .page-shell { padding: 28px 16px 20px; }
   .workspace { grid-template-columns: 1fr; }
   .form-panel, .result-panel { padding: 20px; }
   .result-panel { min-height: 0; }
-  .site-nav { align-items: flex-start; flex-direction: column; }
+  .site-nav { align-items: flex-start; flex-wrap: wrap; flex-direction: row; margin: -28px -16px 20px; padding: 12px 16px; }
+  .brand-link { min-width: calc(100% - 120px); }
+  .primary-nav { order: 3; width: 100%; overflow-x: auto; }
+  .nav-utility { margin-left: auto; }
+  .nav-utility > a:not(.account-nav) { padding-inline: 6px; }
+  .account-nav strong { max-width: 110px; }
+  .dashboard-welcome { margin-inline: -16px; padding: 24px 20px; }
+  .seller-stats { grid-template-columns: 1fr; gap: 10px; }
+  .dashboard-columns { grid-template-columns: 1fr; gap: 14px; }
+  .admin-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .admin-action-grid { grid-template-columns: 1fr; }
   .seller-profile-intro { grid-template-columns: 1fr; justify-items: start; padding: 20px; }
   .seller-avatar { width: 100px; height: 100px; }
   .manage-card { align-items: flex-start; flex-direction: column; }
   .two-column-fields { grid-template-columns: 1fr; gap: 0; }
   .site-footer nav { align-items: center; flex-direction: column; }
   .message-card { max-width: 100%; }
+}
+
+@media (max-width: 380px) {
+  .page-shell { padding-inline: 12px; }
+  .site-nav { margin-inline: -12px; padding-inline: 12px; }
+  .dashboard-welcome { margin-inline: -12px; }
+  .inventory-row { grid-template-columns: 52px minmax(0, 1fr); }
+  .inventory-thumb { width: 52px; height: 52px; }
+  .inventory-edit { grid-column: 2; justify-self: start; }
+  .dashboard-panel { padding: 16px; }
 }

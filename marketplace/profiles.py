@@ -160,7 +160,7 @@ def public_seller_profile(seller_id: int):
         """SELECT l.*, (SELECT id FROM listing_images li
                          WHERE li.listing_id = l.id ORDER BY li.id LIMIT 1) AS cover_image_id
            FROM listings l JOIN users u ON u.id = l.seller_id
-           WHERE l.seller_id = ? AND l.status = 'published'
+           WHERE l.seller_id = ? AND l.status = 'published' AND l.review_status = 'approved'
              AND NOT EXISTS (SELECT 1 FROM listing_moderation lm WHERE lm.listing_id = l.id AND lm.status = 'hidden')
              AND u.account_status = 'active'
              AND u.seller_approval = 'approved'
@@ -277,7 +277,7 @@ def listing_image(image_id: int):
     row = get_db().execute(
         """SELECT li.filename FROM listing_images li JOIN listings l ON l.id = li.listing_id
            JOIN users u ON u.id = l.seller_id
-           WHERE li.id = ? AND l.status = 'published'
+           WHERE li.id = ? AND l.status = 'published' AND l.review_status = 'approved'
              AND NOT EXISTS (SELECT 1 FROM listing_moderation lm WHERE lm.listing_id = l.id AND lm.status = 'hidden')
              AND u.role = 'seller'
              AND u.account_status = 'active' AND u.seller_approval = 'approved'""",
@@ -389,8 +389,15 @@ def _save_listing(user, listing=None):
                  values["description"], values["additional_details"], values["availability"],
                  values["status"], int(values["quantity"]) if values.get("quantity") else None, listing_id, user["id"]),
             )
+        content_changed = listing is not None and (
+            values["item_name"] != listing["item_name"]
+            or values["description"] != listing["description"]
+            or bool(new_files)
+        )
         for filename in new_files:
             db.execute("INSERT INTO listing_images (listing_id, filename) VALUES (?, ?)", (listing_id, filename))
+        if content_changed or (listing is None and values["status"] == "published"):
+            db.execute("UPDATE listings SET review_status = 'pending', review_reason = '', reviewer_id = NULL, reviewed_at = NULL WHERE id = ?", (listing_id,))
         db.commit()
     except sqlite3.Error:
         db.rollback()
@@ -451,6 +458,7 @@ def remove_listing_photo(listing_id: int, image_id: int):
         abort(404)
     db = get_db()
     db.execute("DELETE FROM listing_images WHERE id = ? AND listing_id = ?", (image_id, listing_id))
+    db.execute("UPDATE listings SET review_status = 'pending', review_reason = '', reviewer_id = NULL, reviewed_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND review_status = 'approved'", (listing_id,))
     db.commit()
     delete_image(row["filename"], current_app.instance_path)
     flash("Photo removed.", "success")

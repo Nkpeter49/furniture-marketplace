@@ -2,6 +2,7 @@
 
 import hmac
 import os
+import re
 import secrets
 from pathlib import Path
 from datetime import datetime, timezone
@@ -28,7 +29,7 @@ from marketplace.storefront import storefront_bp
 PRODUCT_REQUIRED_FIELDS = {"item_name": "Item name", "category": "Furniture category"}
 PRODUCT_FIELDS = (
     "item_name", "category", "material", "condition", "dimensions",
-    "price", "colour", "additional_details",
+    "price", "currency", "colour", "additional_details",
 )
 
 
@@ -188,6 +189,9 @@ def create_app(test_config: dict | None = None) -> Flask:
         missing = [label for key, label in PRODUCT_REQUIRED_FIELDS.items() if not normalized[key]]
         if missing:
             return jsonify(error="Please fill in: " + ", ".join(missing) + "."), 400
+        if normalized["currency"] and not re.fullmatch(r"[A-Za-z]{3}", normalized["currency"]):
+            return jsonify(error="Currency must be a three-letter code when provided."), 400
+        normalized["currency"] = normalized["currency"].upper()
 
         try:
             result = generate_text(build_product_prompt(normalized))

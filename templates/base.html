@@ -11,40 +11,33 @@
   <main class="page-shell">
     <header class="page-header">
       <nav class="site-nav" aria-label="Main navigation">
-        <a href="{{ url_for('storefront.browse') }}" class="brand-link">{{ app_name }}</a>
-        <div class="nav-links">
-          <a href="{{ url_for('storefront.browse') }}">Browse furniture</a>
-          <a href="{{ url_for('product_description_tool') }}">AI listing description tool</a>
-          {% if current_user %}
-            <a href="{{ url_for('auth.dashboard') }}">Dashboard</a>
-            <a href="{{ url_for('auth.account') }}">My account</a>
-            <a href="{{ url_for('support.privacy_requests') }}">Privacy &amp; data requests</a>
-            {% if current_user['role'] == 'buyer' %}
-              <a href="{{ url_for('storefront.favorites') }}">Saved furniture</a>
-              <a href="{{ url_for('storefront.conversations') }}">My conversations</a>
-            {% endif %}
-            {% if current_user['role'] == 'seller' and current_user['account_status'] == 'active' and current_user['seller_approval'] == 'approved' %}
-              <a href="{{ url_for('profiles.seller_listings') }}">My listings</a>
-              <a href="{{ url_for('storefront.conversations') }}">Buyer inquiries</a>
-            {% endif %}
-            {% if current_user['role'] == 'admin' %}
-              <a href="{{ url_for('admin.dashboard') }}">Admin overview</a>
-              <a href="{{ url_for('admin.users') }}">Admin users</a>
-              <a href="{{ url_for('support.admin_tickets') }}">Support queue</a>
-              <a href="{{ url_for('support.admin_reports') }}">Reports</a>
-              <a href="{{ url_for('support.admin_privacy_requests') }}">Privacy requests</a>
-            {% endif %}
-            <form method="post" action="{{ url_for('auth.logout') }}" class="inline-form">
-              <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-              <button class="link-button" type="submit">Sign out</button>
-            </form>
-          {% else %}
-            <a href="{{ url_for('auth.login') }}">Sign in</a>
-            <a href="{{ url_for('auth.register') }}">Create account</a>
+        <a href="{{ url_for('storefront.browse') }}" class="brand-link"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M7 14V8a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v6M5 14h22v7H5zM8 21v6m16-6v6M9 10h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>{{ app_name }}<small>Furniture marketplace</small></span></a>
+        {% if current_user %}<div class="primary-nav">
+          <a href="{{ url_for('auth.dashboard') }}" {% if request.endpoint in ['auth.dashboard','auth.buyer_dashboard','auth.seller_dashboard','auth.admin_dashboard'] %}aria-current="page"{% endif %}>Dashboard</a>
+          {% if current_user['role'] == 'seller' and current_user['account_status'] == 'active' and current_user['seller_approval'] == 'approved' %}
+            <a href="{{ url_for('profiles.seller_listings') }}" {% if request.endpoint in ['profiles.seller_listings','profiles.create_listing','profiles.edit_listing'] %}aria-current="page"{% endif %}>My Listings</a>
+            <a href="{{ url_for('storefront.conversations') }}" {% if request.endpoint in ['storefront.conversations','storefront.conversation_detail'] %}aria-current="page"{% endif %}>Buyer Inquiries</a>
+          {% elif current_user['role'] == 'buyer' %}
+            <a href="{{ url_for('storefront.browse') }}" {% if request.endpoint in ['storefront.browse','storefront.listing_detail'] %}aria-current="page"{% endif %}>Browse</a>
+            <a href="{{ url_for('storefront.favorites') }}" {% if request.endpoint == 'storefront.favorites' %}aria-current="page"{% endif %}>Saved furniture</a>
+          {% elif current_user['role'] == 'admin' %}
+            <a href="{{ url_for('admin.listings_to_review') }}" {% if request.endpoint in ['admin.listings_to_review','admin.review_listing'] %}aria-current="page"{% endif %}>Listings to review</a>
+            <a href="{{ url_for('admin.users') }}" {% if request.endpoint == 'admin.users' %}aria-current="page"{% endif %}>Manage accounts</a>
           {% endif %}
-          <a href="{{ url_for('support.help_center') }}">Help Center</a>
-          <a href="{{ url_for('support.policy_index') }}">Policies</a>
-          {% if current_user %}<a href="{{ url_for('support.create_ticket') }}">Contact Support</a>{% endif %}
+        </div>{% else %}<div class="primary-nav"><a href="{{ url_for('storefront.browse') }}">Browse furniture</a><a href="{{ url_for('auth.login') }}">Sign in</a></div>{% endif %}
+        <div class="nav-utility"><a href="{{ url_for('support.help_center') }}">Help</a>
+          {% if current_user %}<a class="account-nav" href="{{ url_for('auth.account') }}"><strong>{{ current_user['display_name'] }}</strong><small>My Account</small></a>{% endif %}
+          <details class="more-nav"><summary>More</summary><div class="more-menu">
+            <a href="{{ url_for('storefront.browse') }}">Browse furniture</a><a href="{{ url_for('product_description_tool') }}">AI listing description tool</a>
+            {% if current_user %}<a href="{{ url_for('auth.account') }}">My account</a><a href="{{ url_for('support.privacy_requests') }}">Privacy &amp; data requests</a>
+              {% if current_user['role'] == 'buyer' %}<a href="{{ url_for('storefront.favorites') }}">Saved furniture</a><a href="{{ url_for('storefront.conversations') }}">My conversations</a>{% endif %}
+              {% if current_user['role'] == 'seller' and current_user['account_status'] == 'active' and current_user['seller_approval'] == 'approved' %}<a href="{{ url_for('profiles.seller_listings') }}">My listings</a><a href="{{ url_for('storefront.conversations') }}">Buyer inquiries</a><a href="{{ url_for('profiles.edit_seller_profile') }}">Business profile</a>{% endif %}
+              {% if current_user['role'] == 'admin' %}<a href="{{ url_for('admin.dashboard') }}">Admin overview</a><a href="{{ url_for('admin.users') }}">Admin users</a><a href="{{ url_for('support.admin_tickets') }}">Support queue</a><a href="{{ url_for('support.admin_reports') }}">Reports</a><a href="{{ url_for('support.admin_privacy_requests') }}">Privacy requests</a>{% endif %}
+              <a href="{{ url_for('support.create_ticket') }}">Contact Support</a><a href="{{ url_for('support.my_tickets') }}">My support requests</a><a href="{{ url_for('support.my_reports') }}">My reports</a>
+              <form method="post" action="{{ url_for('auth.logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="link-button" type="submit">Sign out</button></form>
+            {% else %}<a href="{{ url_for('auth.register') }}">Create account</a>{% endif %}
+            <a href="{{ url_for('support.policy_index') }}">Policies</a>
+          </div></details>
         </div>
       </nav>
       <h1>{% block heading %}Furniture Marketplace{% endblock %}</h1>

@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Listings to review · {{ app_name }}{% endblock %}
+{% block heading %}Listings to review{% endblock %}
+{% block content %}
+<section class="form-panel"><p>New and materially edited listings stay hidden until approved.</p>
+{% for listing in listings %}<article class="manage-card"><div><p class="eyebrow">{{ listing['seller_name'] }} · {{ listing['seller_email'] }}{% if listing['business_name'] %} · {{ listing['business_name'] }}{% endif %}</p><h2>{{ listing['item_name'] }}</h2><p>{{ listing['price'] or 'Price not provided' }} {{ listing['currency'] }} · {{ listing['category'] }}</p><p class="preserve-lines">{{ listing['description'] or 'No description provided.' }}</p>
+{% for image in review_images[listing['id']] %}<img class="review-photo" src="{{ url_for('admin.listing_review_image', image_id=image['id']) }}" alt="Listing photo">{% else %}<p>No photos provided.</p>{% endfor %}</div>
+<div class="manage-actions"><form method="post" action="{{ url_for('admin.review_listing', listing_id=listing['id']) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button type="submit" name="action" value="approve">Approve</button></form><form method="post" action="{{ url_for('admin.review_listing', listing_id=listing['id']) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><label for="reason-{{ listing['id'] }}">Reason to reject (required)</label><textarea id="reason-{{ listing['id'] }}" name="reason" minlength="5" maxlength="300" required></textarea><button class="danger-button" type="submit" name="action" value="reject">Reject</button></form></div></article>
+{% else %}<div class="empty-state"><h2>No listings are waiting for review</h2></div>{% endfor %}</section>
+{% endblock %}
